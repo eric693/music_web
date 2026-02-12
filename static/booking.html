@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>音樂補習班 - 課程預約</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --purple: #7c3aed; --purple-light: #ede9fe; --purple-mid: #a78bfa;
+    --text: #1a1a2e; --sub: #6b7280; --border: #e5e7eb; --bg: #fafafa; --white: #fff;
+    --radius: 12px;
+  }
+  body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; padding: 20px 16px 80px; }
+  .container { width: 100%; max-width: 430px; background: var(--white); border-radius: 20px; box-shadow: 0 4px 32px rgba(124,58,237,0.10); overflow: hidden; }
+  .header { padding: 20px 20px 16px; text-align: center; border-bottom: 1px solid var(--border); }
+  .header h1 { font-size: 16px; font-weight: 500; }
+  .header .sub { font-size: 12px; color: var(--sub); margin-top: 2px; }
+  .steps { display: flex; padding: 16px 16px 0; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--border); }
+  .steps::-webkit-scrollbar { display: none; }
+  .step { display: flex; align-items: center; gap: 4px; padding: 0 8px 14px; font-size: 13px; color: #c4b5fd; white-space: nowrap; border-bottom: 2px solid transparent; transition: all .2s; }
+  .step .n { font-weight: 700; }
+  .step.active { color: var(--purple); border-bottom-color: var(--purple); }
+  .step.done { color: var(--sub); }
+  .panel { display: none; padding: 24px 20px; min-height: 380px; animation: fi .2s ease; }
+  .panel.active { display: block; }
+  @keyframes fi { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+
+  /* Notice */
+  .notice-box { border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; font-size: 14px; line-height: 1.9; color: #374151; }
+  .notice-box h3 { font-size: 15px; font-weight: 700; margin-bottom: 12px; }
+  .notice-box hr { border: none; border-top: 1px dashed #d1d5db; margin: 12px 0; }
+
+  /* Teachers */
+  .teacher-item { display: flex; align-items: center; gap: 14px; padding: 16px 4px; border-bottom: 1px solid var(--border); cursor: pointer; border-radius: 8px; transition: background .15s; }
+  .teacher-item:hover, .teacher-item.sel { background: var(--purple-light); }
+  .avatar { width: 54px; height: 54px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; color: white; flex-shrink: 0; }
+  .teacher-info { flex: 1; }
+  .t-name { font-size: 16px; font-weight: 500; }
+  .t-tag { display: inline-block; font-size: 11px; border: 1px solid var(--purple); color: var(--purple); border-radius: 20px; padding: 1px 10px; margin-top: 4px; }
+  .t-bio { font-size: 12px; color: var(--sub); margin-top: 4px; line-height: 1.5; }
+  .chk { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all .2s; font-size: 12px; }
+  .teacher-item.sel .chk { background: var(--purple); border-color: var(--purple); color: white; }
+
+  /* Courses */
+  .p-title { font-size: 13px; color: var(--sub); margin-bottom: 16px; }
+  .cg { border-bottom: 1px solid var(--border); cursor: pointer; }
+  .cg-hdr { display: flex; justify-content: space-between; align-items: center; padding: 16px 4px; font-size: 15px; transition: color .15s; }
+  .cg-hdr:hover, .cg.open .cg-hdr { color: var(--purple); font-weight: 500; }
+  .arr { font-size: 11px; color: var(--sub); transition: transform .2s; }
+  .cg.open .arr { transform: rotate(180deg); color: var(--purple); }
+  .cg-body { display: none; padding: 0 4px 16px; flex-wrap: wrap; gap: 8px; }
+  .cg.open .cg-body { display: flex; }
+  .chip { padding: 6px 14px; border: 1px solid var(--border); border-radius: 20px; font-size: 13px; cursor: pointer; transition: all .15s; }
+  .chip:hover, .chip.sel { background: var(--purple); border-color: var(--purple); color: white; }
+  .chip .price { font-size: 11px; opacity: .8; }
+
+  /* Calendar */
+  .cal-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .cal-nav { width: 36px; height: 36px; border-radius: 50%; background: var(--purple); color: white; border: none; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; }
+  .cal-nav:hover { background: #6d28d9; }
+  .cal-title { font-size: 16px; font-weight: 500; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; text-align: center; }
+  .dow { font-size: 13px; color: var(--sub); padding: 6px 0; font-weight: 500; }
+  .day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 14px; cursor: pointer; transition: all .15s; }
+  .day.other { color: #d1d5db; cursor: default; }
+  .day.today { background: var(--purple); color: white; font-weight: 700; }
+  .day.sel { background: var(--purple); color: white; font-weight: 700; }
+  .day.has { color: var(--purple); font-weight: 600; }
+  .day.off { color: #d1d5db; cursor: default; }
+  .day:not(.other):not(.off):not(.today):not(.sel):hover { background: var(--purple-light); color: var(--purple); }
+  .time-area { margin-top: 20px; border-top: 1px solid var(--border); padding-top: 16px; }
+  .time-title { font-size: 13px; color: var(--sub); margin-bottom: 12px; }
+  .time-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+  .tc { padding: 10px 8px; border: 1px solid var(--border); border-radius: 8px; text-align: center; font-size: 14px; cursor: pointer; transition: all .15s; }
+  .tc:hover, .tc.sel { background: var(--purple); border-color: var(--purple); color: white; }
+  .no-slot { font-size: 13px; color: var(--sub); text-align: center; padding: 16px 0; line-height: 1.7; }
+
+  /* Form */
+  .fg { margin-bottom: 20px; }
+  .fl { font-size: 13px; color: var(--sub); margin-bottom: 6px; display: block; }
+  .fi { width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 15px; font-family: inherit; background: #fafafa; transition: border-color .15s; }
+  .fi:focus { outline: none; border-color: var(--purple); background: white; }
+  .fi::placeholder { color: #c4b5fd; }
+  .rg { display: flex; gap: 10px; }
+  .rl { flex: 1; border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; cursor: pointer; text-align: center; font-size: 14px; color: var(--sub); transition: all .15s; }
+  .rl.sel { border-color: var(--purple); background: var(--purple-light); color: var(--purple); font-weight: 500; }
+
+  /* Summary */
+  .sum-card { background: var(--purple-light); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
+  .sum-title { font-size: 13px; color: var(--purple); font-weight: 500; margin-bottom: 14px; }
+  .sum-row { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 10px; }
+  .sum-row .lbl { color: var(--sub); }
+  .sum-row .val { font-weight: 500; text-align: right; }
+
+  /* Footer */
+  .footer { position: sticky; bottom: 0; background: var(--white); border-top: 1px solid var(--border); padding: 14px 20px; display: flex; gap: 10px; }
+  .btn { flex: 1; padding: 13px; border-radius: var(--radius); font-size: 15px; font-family: inherit; font-weight: 500; cursor: pointer; border: none; transition: all .15s; }
+  .btn-prev { background: white; color: var(--purple); border: 1.5px solid var(--purple); }
+  .btn-prev:hover { background: var(--purple-light); }
+  .btn-next { background: var(--purple); color: white; }
+  .btn-next:hover { background: #6d28d9; }
+  .btn-next:disabled { background: #c4b5fd; cursor: not-allowed; }
+  .btn-full { flex: 2; }
+
+  /* Loading */
+  .loading { text-align: center; padding: 40px 0; color: var(--sub); font-size: 14px; }
+
+  /* Success */
+  .success { text-align: center; padding: 40px 20px; }
+  .s-circle { width: 72px; height: 72px; background: #d1fae5; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 20px; }
+  .success h2 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+  .success p { font-size: 14px; color: var(--sub); line-height: 1.7; }
+  .bid { display: inline-block; background: var(--purple-light); color: var(--purple); border-radius: 8px; padding: 6px 20px; font-size: 15px; font-weight: 700; letter-spacing: 2px; margin: 16px 0; }
+</style>
+</head>
+<body>
+<div class="container" id="app">
+  <div class="header">
+    <h1>音樂補習班 - 課程預約</h1>
+    <div class="sub">一對一專業音樂教學</div>
+  </div>
+  <div class="steps" id="stepsBar">
+    <div class="step active" data-s="1"><span class="n">1.</span> 注意事項</div>
+    <div class="step" data-s="2"><span class="n">2.</span> 老師</div>
+    <div class="step" data-s="3"><span class="n">3.</span> 課程</div>
+    <div class="step" data-s="4"><span class="n">4.</span> 時間</div>
+    <div class="step" data-s="5"><span class="n">5.</span> 學生資料</div>
+  </div>
+
+  <!-- 1 Notice -->
+  <div class="panel active" id="p1">
+    <div class="notice-box">
+      <h3>預約注意事項</h3>
+      <hr>
+      <p>歡迎預約本補習班一對一音樂課程。</p>
+      <hr>
+      <p>初次上課的同學，請先選擇「體驗課」，讓老師了解您的程度後，再安排正式課程。</p>
+      <p>每堂課時長為 60 分鐘，請提前 5 分鐘抵達。</p>
+      <hr>
+      <p>預約取消需在上課時間 24 小時前操作，逾時需致電或來訊告知。</p>
+      <p>遲到超過 15 分鐘視為缺席，不予補課。</p>
+      <hr>
+      <p>若有任何問題，請於官方 LINE 聯繫我們，謝謝。</p>
+    </div>
+  </div>
+
+  <!-- 2 Teacher -->
+  <div class="panel" id="p2"><div class="loading">載入中...</div></div>
+
+  <!-- 3 Course -->
+  <div class="panel" id="p3">
+    <div class="p-title">可一次預約多項目</div>
+    <div id="courseList"><div class="loading">載入中...</div></div>
+  </div>
+
+  <!-- 4 Time -->
+  <div class="panel" id="p4">
+    <div class="cal-hdr">
+      <button class="cal-nav" id="calPrev">‹</button>
+      <div class="cal-title" id="calTitle"></div>
+      <button class="cal-nav" id="calNext">›</button>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+    <div class="time-area" id="timeArea"></div>
+  </div>
+
+  <!-- 5 Student info -->
+  <div class="panel" id="p5">
+    <div class="fg"><label class="fl">姓名 *</label><input class="fi" id="fName" placeholder="請輸入真實姓名"></div>
+    <div class="fg"><label class="fl">LINE 帳號 / 電話 *</label><input class="fi" id="fContact" placeholder="方便聯繫的方式"></div>
+    <div class="fg"><label class="fl">年齡</label><input class="fi" id="fAge" type="number" placeholder="例：18" min="1" max="99"></div>
+    <div class="fg">
+      <label class="fl">程度</label>
+      <div class="rg" id="levelGroup">
+        <div class="rl" onclick="selLevel(this,'初學者')">初學者</div>
+        <div class="rl" onclick="selLevel(this,'有基礎')">有基礎</div>
+        <div class="rl" onclick="selLevel(this,'進階')">進階</div>
+      </div>
+    </div>
+    <div class="fg"><label class="fl">備註（選填）</label><input class="fi" id="fNote" placeholder="其他想讓老師知道的事"></div>
+    <div class="sum-card" id="sumCard"></div>
+  </div>
+
+  <div class="footer" id="footer">
+    <button class="btn btn-prev" id="btnPrev" style="display:none" onclick="go(-1)">上一步 Prev</button>
+    <button class="btn btn-next btn-full" id="btnNext" onclick="go(1)">下一步 Next</button>
+  </div>
+</div>
+
+<script>
+const API = '';   // 同 origin，部署後不需改
+let step = 1;
+const STEPS = 5;
+let state = { teacher: null, courses: [], date: null, time: null, slotId: null, level: '' };
+let allSlots = {};   // date -> [time, ...]
+let calY = new Date().getFullYear(), calM = new Date().getMonth();
+
+// ── init ──
+loadTeachers();
+loadCourses();
+renderCal();
+updateFooter();
+
+async function loadTeachers() {
+  try {
+    const res = await fetch(`${API}/api/teachers`);
+    const teachers = await res.json();
+    const avColors = ['#7c3aed','#0ea5e9','#10b981','#f59e0b','#ef4444'];
+    document.getElementById('p2').innerHTML = teachers.map((t,i) => `
+      <div class="teacher-item" id="ti-${t.id}" onclick="selTeacher(${t.id})">
+        <div class="avatar" style="background:${avColors[i%avColors.length]}">${t.name[0]}</div>
+        <div class="teacher-info">
+          <div class="t-name">${t.name}</div>
+          <div class="t-tag">${t.instrument}</div>
+          <div class="t-bio">${t.bio}</div>
+        </div>
+        <div class="chk" id="chk-${t.id}"></div>
+      </div>
+    `).join('');
+  } catch(e) {
+    document.getElementById('p2').innerHTML = '<div class="no-slot">無法載入老師資料，請重新整理。</div>';
+  }
+}
+
+async function loadCourses() {
+  try {
+    const res = await fetch(`${API}/api/courses`);
+    const groups = await res.json();
+    document.getElementById('courseList').innerHTML = groups.map(g => `
+      <div class="cg" id="cg-${g.group}">
+        <div class="cg-hdr" onclick="toggleCG('${g.group}')">
+          <span>${g.group}</span><span class="arr">▼</span>
+        </div>
+        <div class="cg-body">
+          ${g.items.map(it => `
+            <div class="chip" id="chip-${it.id}" onclick="selCourse(${it.id},'${it.name.replace(/'/g,"\\'")}',${it.price})">
+              ${it.name} <span class="price">NT$${it.price}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `).join('');
+  } catch(e) {
+    document.getElementById('courseList').innerHTML = '<div class="no-slot">無法載入課程資料。</div>';
+  }
+}
+
+async function loadSlots() {
+  allSlots = {};
+  if (!state.teacher) return;
+  try {
+    const res = await fetch(`${API}/api/slots?teacher_id=${state.teacher}&days=30`);
+    const slots = await res.json();
+    slots.forEach(s => {
+      if (!allSlots[s.date]) allSlots[s.date] = [];
+      allSlots[s.date].push({ id: s.id, time: s.time });
+    });
+  } catch(e) {}
+  renderCal();
+}
+
+// ── teachers ──
+function selTeacher(id) {
+  state.teacher = id;
+  document.querySelectorAll('.teacher-item').forEach(el => el.classList.remove('sel'));
+  document.querySelectorAll('.chk').forEach(el => el.textContent = '');
+  document.getElementById(`ti-${id}`).classList.add('sel');
+  document.getElementById(`chk-${id}`).textContent = '✓';
+}
+
+// ── courses ──
+function toggleCG(g) {
+  document.getElementById(`cg-${g}`).classList.toggle('open');
+}
+function selCourse(id, name, price) {
+  const chip = document.getElementById(`chip-${id}`);
+  const idx = state.courses.findIndex(c => c.id === id);
+  if (idx === -1) { state.courses.push({id, name, price}); chip.classList.add('sel'); }
+  else            { state.courses.splice(idx,1);            chip.classList.remove('sel'); }
+}
+
+// ── calendar ──
+function renderCal() {
+  const mn = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+  document.getElementById('calTitle').textContent = `${mn[calM]} ${calY}`;
+  const today = new Date();
+  const todayStr = fmtDate(today);
+  const first = new Date(calY, calM, 1).getDay();
+  const dim   = new Date(calY, calM+1, 0).getDate();
+  const prev  = new Date(calY, calM, 0).getDate();
+  let html = ['日','一','二','三','四','五','六'].map(d=>`<div class="dow">${d}</div>`).join('');
+  for(let i=first-1;i>=0;i--) html+=`<div class="day other">${prev-i}</div>`;
+  for(let d=1;d<=dim;d++){
+    const ds = `${calY}-${String(calM+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isPast = ds < todayStr;
+    const isToday = ds === todayStr;
+    const hasSl = allSlots[ds] && allSlots[ds].length > 0;
+    const isSel = state.date === ds;
+    let cls = 'day';
+    if(isPast) cls+=' off';
+    else if(isSel) cls+=' sel';
+    else if(isToday) cls+=' today';
+    else if(hasSl) cls+=' has';
+    const click = (!isPast) ? `onclick="selDate('${ds}')"` : '';
+    html+=`<div class="${cls}" ${click}>${d}</div>`;
+  }
+  const rem = 42-first-dim;
+  for(let i=1;i<=rem;i++) html+=`<div class="day other">${i}</div>`;
+  document.getElementById('calGrid').innerHTML = html;
+  renderTimeArea();
+}
+function fmtDate(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function selDate(ds){ state.date=ds; state.time=null; state.slotId=null; renderCal(); }
+function renderTimeArea(){
+  const el = document.getElementById('timeArea');
+  if(!state.date){ el.innerHTML='<div class="no-slot">請選擇日期後查看可用時段。</div>'; return; }
+  const sl = allSlots[state.date];
+  if(!sl||sl.length===0){ el.innerHTML='<div class="no-slot">當日無合適的預約時段，<br>請選擇其他日期。</div>'; return; }
+  el.innerHTML=`<div class="time-title">可用時段</div><div class="time-grid">${sl.map(s=>`<div class="tc ${state.slotId===s.id?'sel':''}" onclick="selTime(${s.id},'${s.time}')">${s.time}</div>`).join('')}</div>`;
+}
+function selTime(id,t){ state.slotId=id; state.time=t; renderTimeArea(); }
+
+document.getElementById('calPrev').onclick=()=>{ calM--; if(calM<0){calM=11;calY--;} renderCal(); };
+document.getElementById('calNext').onclick=()=>{ calM++; if(calM>11){calM=0;calY++;} renderCal(); };
+
+// ── level ──
+function selLevel(el,v){ state.level=v; document.querySelectorAll('.rl').forEach(r=>r.classList.remove('sel')); el.classList.add('sel'); }
+
+// ── summary ──
+function renderSummary(){
+  const teacherEl = document.querySelector(`.teacher-item.sel .t-name`);
+  const teacherInst = document.querySelector(`.teacher-item.sel .t-tag`);
+  const names = state.courses.map(c=>c.name).join('、') || '（未選擇）';
+  const total = state.courses.reduce((s,c)=>s+c.price,0);
+  document.getElementById('sumCard').innerHTML=`
+    <div class="sum-title">預約摘要</div>
+    <div class="sum-row"><span class="lbl">老師</span><span class="val">${teacherEl?teacherEl.textContent+' ('+teacherInst.textContent+')':'未選擇'}</span></div>
+    <div class="sum-row"><span class="lbl">課程</span><span class="val">${names}</span></div>
+    <div class="sum-row"><span class="lbl">日期</span><span class="val">${state.date||'未選擇'}</span></div>
+    <div class="sum-row"><span class="lbl">時間</span><span class="val">${state.time||'未選擇'}</span></div>
+    <div class="sum-row" style="border-top:1px solid #c4b5fd;padding-top:10px;margin-top:4px;">
+      <span class="lbl" style="font-weight:600;color:#4c1d95;">合計費用</span>
+      <span class="val" style="color:#7c3aed;font-size:16px;">NT$ ${total.toLocaleString()}</span>
+    </div>`;
+}
+
+// ── navigation ──
+async function go(dir){
+  const next = step+dir;
+  if(next<1||next>STEPS+1) return;
+  if(dir>0){
+    if(step===2&&!state.teacher){ alert('請選擇一位老師'); return; }
+    if(step===3&&state.courses.length===0){ alert('請至少選擇一項課程'); return; }
+    if(step===4&&(!state.date||!state.time)){ alert('請選擇日期與時段'); return; }
+    if(step===5){ await submitBooking(); return; }
+    if(step===2){ await loadSlots(); }   // load slots after teacher selected
+    if(next===5) renderSummary();
+  }
+  document.getElementById(`p${step}`).classList.remove('active');
+  document.querySelectorAll('.step').forEach(s=>{
+    const n=parseInt(s.dataset.s);
+    s.classList.remove('active','done');
+    if(n<next) s.classList.add('done');
+    if(n===next) s.classList.add('active');
+  });
+  step=next;
+  document.getElementById(`p${step}`).classList.add('active');
+  updateFooter();
+}
+function updateFooter(){
+  document.getElementById('btnPrev').style.display = step>1?'block':'none';
+  const nb=document.getElementById('btnNext');
+  nb.textContent = step===STEPS?'送出預約 Submit':'下一步 Next';
+  nb.className = 'btn btn-next' + (step===1?' btn-full':'');
+}
+
+async function submitBooking(){
+  const name=document.getElementById('fName').value.trim();
+  const contact=document.getElementById('fContact').value.trim();
+  if(!name||!contact){ alert('請填寫姓名與聯繫方式'); return; }
+  const nb=document.getElementById('btnNext');
+  nb.disabled=true; nb.textContent='送出中...';
+  try{
+    const res=await fetch(`${API}/api/book`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        teacher_id: state.teacher,
+        slot_id: state.slotId,
+        student_name: name,
+        student_contact: contact,
+        student_age: document.getElementById('fAge').value,
+        student_level: state.level,
+        student_note: document.getElementById('fNote').value,
+        courses: state.courses,
+      })
+    });
+    const data=await res.json();
+    if(res.ok&&data.success){
+      showSuccess(data.booking_code, data.booking);
+    } else {
+      alert(data.error||'送出失敗，請重試');
+      nb.disabled=false; nb.textContent='送出預約 Submit';
+    }
+  }catch(e){
+    alert('網路錯誤，請重試'); nb.disabled=false; nb.textContent='送出預約 Submit';
+  }
+}
+
+function showSuccess(code, booking){
+  document.getElementById('stepsBar').style.display='none';
+  document.getElementById('footer').style.display='none';
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  const div=document.createElement('div');
+  div.className='success panel active';
+  div.innerHTML=`
+    <div class="s-circle">✓</div>
+    <h2>預約成功！</h2>
+    <p>您的課程預約已送出，<br>我們將盡快與您確認。</p>
+    <div class="bid">${code}</div>
+    <p style="font-size:13px;color:#9ca3af;margin-top:4px;">請截圖保存此預約編號</p>
+    <div style="margin-top:24px;text-align:left;">
+      <div class="sum-card">
+        <div class="sum-title">預約摘要</div>
+        <div class="sum-row"><span class="lbl">老師</span><span class="val">${booking.teacher} (${booking.instrument})</span></div>
+        <div class="sum-row"><span class="lbl">日期</span><span class="val">${booking.date}</span></div>
+        <div class="sum-row"><span class="lbl">時間</span><span class="val">${booking.time}</span></div>
+        <div class="sum-row" style="border-top:1px solid #c4b5fd;padding-top:10px;margin-top:4px;">
+          <span class="lbl" style="font-weight:600;color:#4c1d95;">合計費用</span>
+          <span class="val" style="color:#7c3aed;font-size:16px;">NT$ ${booking.total_price.toLocaleString()}</span>
+        </div>
+      </div>
+    </div>
+    <p style="font-size:13px;color:#9ca3af;margin-top:16px;">如需更改或取消，請於 24 小時前透過 LINE 通知我們。</p>
+  `;
+  document.getElementById('app').appendChild(div);
+}
+</script>
+</body>
+</html>
