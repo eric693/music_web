@@ -256,6 +256,12 @@ body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); color: va
   .toggle-sidebar-btn { display: flex; }
 }
 </style>
+<script>
+// 檢查是否已登入
+if (!sessionStorage.getItem('adminPassword')) {
+  window.location.href = '/admin';
+}
+</script>
 </head>
 <body>
 
@@ -444,7 +450,7 @@ body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); color: va
   <!-- Booking Page -->
   <div class="page" id="page-booking">
     <h2 style="margin-bottom: 20px; font-size: 24px; font-weight: 700;">預約管理</h2>
-    <iframe src="/admin" style="width: 100%; height: calc(100vh - 140px); border: none; border-radius: 12px; background: white;"></iframe>
+    <iframe src="/booking-admin" style="width: 100%; height: calc(100vh - 140px); border: none; border-radius: 12px; background: white;"></iframe>
   </div>
 
   <!-- LINE Module Pages -->
@@ -701,6 +707,7 @@ function loadModuleState() {
 // Logout
 function logout() {
   if (confirm('確定要登出嗎？')) {
+    sessionStorage.removeItem('adminPassword');
     localStorage.removeItem('moduleState');
     window.location.href = '/admin';
   }

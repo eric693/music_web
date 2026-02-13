@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>預約管理</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --purple: #7c3aed; --purple-light: #ede9fe; --text: #1a1a2e;
+  --sub: #6b7280; --border: #e5e7eb; --bg: #f3f4f6; --white: #fff;
+  --green: #10b981; --red: #ef4444; --radius: 10px;
+}
+body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
+
+/* Stats */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 28px; }
+.stat-card { background: white; border-radius: var(--radius); padding: 20px; border: 1px solid var(--border); }
+.stat-card .label { font-size: 13px; color: var(--sub); margin-bottom: 6px; }
+.stat-card .value { font-size: 28px; font-weight: 700; color: var(--purple); }
+.stat-card .sub-val { font-size: 12px; color: var(--sub); margin-top: 4px; }
+
+/* Filter bar */
+.filter-bar { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; align-items: center; }
+.filter-btn { padding: 7px 16px; border-radius: 20px; border: 1px solid var(--border); background: white; font-size: 13px; cursor: pointer; font-family: inherit; transition: all .15s; }
+.filter-btn.active { background: var(--purple); color: white; border-color: var(--purple); }
+.search-input { flex: 1; min-width: 200px; padding: 8px 14px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; font-family: inherit; background: white; }
+.search-input:focus { outline: none; border-color: var(--purple); }
+
+/* Table */
+.table-wrap { background: white; border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; }
+.table-wrap table { width: 100%; border-collapse: collapse; }
+.table-wrap th { background: #f9fafb; padding: 12px 16px; text-align: left; font-size: 12px; color: var(--sub); font-weight: 600; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.table-wrap td { padding: 14px 16px; font-size: 13px; border-bottom: 1px solid #f3f4f6; vertical-align: top; }
+.table-wrap tr:last-child td { border-bottom: none; }
+.table-wrap tr:hover td { background: #fafafa; }
+.badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+.badge-confirmed { background: #d1fae5; color: #065f46; }
+.badge-cancelled { background: #fee2e2; color: #991b1b; }
+.cancel-btn { padding: 4px 12px; border: 1px solid var(--red); color: var(--red); background: white; border-radius: 6px; font-size: 12px; cursor: pointer; font-family: inherit; transition: all .15s; }
+.cancel-btn:hover { background: var(--red); color: white; }
+.empty { text-align: center; padding: 40px; color: var(--sub); font-size: 14px; }
+
+/* Tabs */
+.tabs { display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 2px solid var(--border); }
+.tab { padding: 10px 20px; font-size: 14px; font-weight: 500; color: var(--sub); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .2s; }
+.tab.active { color: var(--purple); border-bottom-color: var(--purple); }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+/* Teacher management */
+.teacher-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.teacher-card { background: white; border-radius: var(--radius); border: 1px solid var(--border); padding: 20px; }
+.tc-top { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.tc-avatar { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 18px; }
+.tc-name { font-size: 16px; font-weight: 600; }
+.tc-tag { font-size: 12px; color: var(--purple); background: var(--purple-light); padding: 2px 10px; border-radius: 20px; margin-top: 2px; display: inline-block; }
+.tc-bio { font-size: 13px; color: var(--sub); line-height: 1.6; margin-bottom: 12px; }
+.tc-footer { display: flex; align-items: center; justify-content: space-between; }
+.tc-price { font-size: 14px; font-weight: 600; color: var(--purple); }
+
+.add-card { background: white; border-radius: var(--radius); border: 2px dashed var(--border); padding: 24px; }
+.add-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 16px; color: var(--purple); }
+.add-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.fg { display: flex; flex-direction: column; gap: 4px; }
+.fl { font-size: 12px; color: var(--sub); }
+.fi { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; font-family: inherit; }
+.add-full { grid-column: 1/-1; }
+.btn-add { background: var(--purple); color: white; border: none; padding: 11px 24px; border-radius: var(--radius); font-size: 14px; font-weight: 500; cursor: pointer; font-family: inherit; margin-top: 12px; }
+.btn-add:hover { background: #6d28d9; }
+</style>
+</head>
+<body>
+
+<!-- Tabs -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('bookings')">預約管理</div>
+  <div class="tab" onclick="switchTab('teachers')">老師管理</div>
+</div>
+
+<!-- Tab: Bookings -->
+<div class="tab-pane active" id="tab-bookings">
+  <div class="stats" id="statsBar"></div>
+  <div class="filter-bar">
+    <button class="filter-btn active" onclick="filterStatus('', this)">全部</button>
+    <button class="filter-btn" onclick="filterStatus('confirmed', this)">已確認</button>
+    <button class="filter-btn" onclick="filterStatus('cancelled', this)">已取消</button>
+    <input class="search-input" id="searchInput" placeholder="搜尋姓名 / 電話 / 預約編號..." oninput="renderTable()">
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>預約編號</th>
+          <th>老師</th>
+          <th>學生</th>
+          <th>聯繫方式</th>
+          <th>日期 / 時間</th>
+          <th>課程</th>
+          <th>費用</th>
+          <th>程度</th>
+          <th>狀態</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="bookingTbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Tab: Teachers -->
+<div class="tab-pane" id="tab-teachers">
+  <div class="teacher-grid" id="teacherGrid"></div>
+  <div class="add-card">
+    <h3>新增老師</h3>
+    <div class="add-grid">
+      <div class="fg"><label class="fl">姓名 *</label><input class="fi" id="aN" placeholder="老師姓名"></div>
+      <div class="fg"><label class="fl">教學科目 *</label><input class="fi" id="aI" placeholder="如：鋼琴、吉他"></div>
+      <div class="fg add-full"><label class="fl">簡介 *</label><input class="fi" id="aB" placeholder="老師簡介"></div>
+      <div class="fg"><label class="fl">每堂費用（NT$）*</label><input class="fi" id="aR" type="number" placeholder="1000"></div>
+      <div class="fg"><label class="fl">上課時間（逗號分隔）</label><input class="fi" id="aT" placeholder="10:00,14:00,16:00,19:00"></div>
+    </div>
+    <button class="btn-add" onclick="addTeacher()">新增老師</button>
+  </div>
+</div>
+
+<script>
+const API = '';
+let pw = sessionStorage.getItem('adminPassword') || '';
+let allBookings = [];
+let statusFilter = '';
+
+async function loadDashboard(){
+  try {
+    const res = await fetch(`${API}/admin/api/bookings`, { headers:{ 'X-Admin-Password': pw } });
+    if(res.status===401){ 
+      alert('登入已過期，請重新登入');
+      window.top.location.href = '/admin';
+      return;
+    }
+    allBookings = await res.json();
+    renderStats();
+    renderTable();
+    loadTeachers();
+  } catch(e){ 
+    alert('無法連線到後端伺服器'); 
+  }
+}
+
+function renderStats(){
+  const confirmed = allBookings.filter(b=>b.status==='confirmed').length;
+  const cancelled = allBookings.filter(b=>b.status==='cancelled').length;
+  const revenue   = allBookings.filter(b=>b.status==='confirmed').reduce((s,b)=>s+b.total_price,0);
+  const today     = new Date().toISOString().slice(0,10);
+  const todayCount= allBookings.filter(b=>b.date===today&&b.status==='confirmed').length;
+  document.getElementById('statsBar').innerHTML=`
+    <div class="stat-card"><div class="label">總預約數</div><div class="value">${allBookings.length}</div></div>
+    <div class="stat-card"><div class="label">已確認</div><div class="value" style="color:#10b981">${confirmed}</div></div>
+    <div class="stat-card"><div class="label">今日課程</div><div class="value">${todayCount}</div><div class="sub-val">${today}</div></div>
+    <div class="stat-card"><div class="label">預估收入</div><div class="value" style="font-size:22px">NT$ ${revenue.toLocaleString()}</div></div>
+  `;
+}
+
+function filterStatus(s, btn){
+  statusFilter=s;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTable();
+}
+
+function renderTable(){
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  let data = allBookings;
+  if(statusFilter) data = data.filter(b=>b.status===statusFilter);
+  if(q) data = data.filter(b=>
+    b.student_name.toLowerCase().includes(q)||
+    b.student_contact.toLowerCase().includes(q)||
+    b.booking_code.toLowerCase().includes(q)||
+    b.teacher.toLowerCase().includes(q)
+  );
+  const tbody = document.getElementById('bookingTbody');
+  if(!data.length){ tbody.innerHTML=`<tr><td colspan="10" class="empty">沒有符合條件的預約</td></tr>`; return; }
+  tbody.innerHTML = data.map(b=>`
+    <tr>
+      <td><code style="font-size:11px">${b.booking_code}</code></td>
+      <td><strong>${b.teacher}</strong><br><span style="font-size:11px;color:var(--sub)">${b.instrument}</span></td>
+      <td>${b.student_name}</td>
+      <td style="font-size:12px">${b.student_contact}</td>
+      <td>${b.date}<br><strong>${b.time}</strong></td>
+      <td style="font-size:12px;max-width:160px">${b.courses.map(c=>c.name).join('<br>') || '-'}</td>
+      <td style="font-weight:600;color:var(--purple)">NT$${b.total_price.toLocaleString()}</td>
+      <td style="font-size:12px;color:var(--sub)">${b.student_level||'-'}</td>
+      <td><span class="badge badge-${b.status}">${b.status==='confirmed'?'已確認':'已取消'}</span></td>
+      <td>${b.status==='confirmed'?`<button class="cancel-btn" onclick="cancelBooking(${b.id})">取消</button>`:''}</td>
+    </tr>
+  `).join('');
+}
+
+async function cancelBooking(id){
+  if(!confirm('確定要取消此預約？')) return;
+  const res = await fetch(`${API}/admin/api/bookings/${id}/cancel`,{ method:'POST', headers:{'X-Admin-Password':pw} });
+  if(res.ok){ await loadDashboard(); } else { alert('操作失敗'); }
+}
+
+// Teachers
+let teachers = [];
+async function loadTeachers(){
+  const res = await fetch(`${API}/admin/api/teachers`,{ headers:{'X-Admin-Password':pw} });
+  teachers = await res.json();
+  renderTeachers();
+}
+const avColors = ['#7c3aed','#0ea5e9','#10b981','#f59e0b','#ef4444','#ec4899'];
+function renderTeachers(){
+  document.getElementById('teacherGrid').innerHTML = teachers.map((t,i)=>`
+    <div class="teacher-card">
+      <div class="tc-top">
+        <div class="tc-avatar" style="background:${avColors[i%avColors.length]}">${t.name[0]}</div>
+        <div><div class="tc-name">${t.name}</div><div class="tc-tag">${t.instrument}</div></div>
+      </div>
+      <div class="tc-bio">${t.bio}</div>
+      <div class="tc-footer">
+        <div class="tc-price">NT$${t.hourly_rate}/堂</div>
+        <button class="cancel-btn" onclick="deleteTeacher(${t.id})">停用</button>
+      </div>
+    </div>
+  `).join('');
+}
+async function addTeacher(){
+  const name=document.getElementById('aN').value.trim();
+  const inst=document.getElementById('aI').value.trim();
+  const bio =document.getElementById('aB').value.trim();
+  const rate=document.getElementById('aR').value;
+  const times=document.getElementById('aT').value.trim()||'10:00,14:00,16:00,19:00';
+  if(!name||!inst||!bio||!rate){ alert('請填寫所有必填欄位'); return; }
+  const res=await fetch(`${API}/admin/api/teachers`,{
+    method:'POST', headers:{'Content-Type':'application/json','X-Admin-Password':pw},
+    body: JSON.stringify({ name, instrument:inst, bio, hourly_rate:parseInt(rate), times: times.split(',').map(t=>t.trim()) })
+  });
+  if(res.ok){
+    ['aN','aI','aB','aR','aT'].forEach(id=>document.getElementById(id).value='');
+    await loadTeachers();
+    alert('老師已新增，並自動建立未來14天時段');
+  } else { alert('新增失敗'); }
+}
+async function deleteTeacher(id){
+  if(!confirm('確定要停用此老師？')) return;
+  const res=await fetch(`${API}/admin/api/teachers/${id}`,{ method:'DELETE', headers:{'X-Admin-Password':pw} });
+  if(res.ok) await loadTeachers();
+  else alert('操作失敗');
+}
+
+function switchTab(tab){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById(`tab-${tab}`).classList.add('active');
+}
+
+// Load on start
+loadDashboard();
+</script>
+
+</body>
+</html>

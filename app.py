@@ -132,18 +132,23 @@ class Booking(db.Model):
 
 @app.route('/')
 def index():
-    """模組化首頁"""
-    return send_from_directory('static', 'index.html')
-
-@app.route('/booking')
-def booking():
     """學生預約頁面"""
     return send_from_directory('static', 'booking.html')
 
 @app.route('/admin')
-def admin():
-    """管理後台"""
+def admin_login():
+    """管理後台登入頁"""
     return send_from_directory('static', 'admin.html')
+
+@app.route('/dashboard')
+def dashboard():
+    """模組管理首頁（需登入）"""
+    return send_from_directory('static', 'index.html')
+
+@app.route('/booking-admin')
+def booking_admin():
+    """預約管理頁面（iframe用）"""
+    return send_from_directory('static', 'booking-admin.html')
 
 
 # ─────────────────────────────────────────────
@@ -399,8 +404,8 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()
         seed()
-    print('\n  模組化首頁：  http://localhost:5000')
-    print('  學生預約頁面：http://localhost:5000/booking')
-    print('  管理後台：    http://localhost:5000/admin')
+    print('\n  學生預約頁面：http://localhost:5000')
+    print('  管理後台登入：http://localhost:5000/admin')
+    print('  模組管理首頁：http://localhost:5000/dashboard')
     print(f'  管理密碼：    {ADMIN_PASSWORD}\n')
     app.run(debug=True, port=5000)
