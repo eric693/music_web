@@ -365,45 +365,54 @@ async function sendMessage(e) {
   const fullMessage = `【${subject}】\n\n${content}`;
   
   if (confirm(`確定要發送訊息給「${selectedRecipient === 'all' ? '全部學生' : selectedRecipient === 'active' ? '在學學生' : '指定學生'}」？`)) {
-    // 這裡應該呼叫後端 API 來實際發送 LINE 訊息
-    // 範例：
-    /*
-    const response = await fetch('/admin/api/line/broadcast', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Admin-Password': sessionStorage.getItem('adminPassword')
-      },
-      body: JSON.stringify({
-        message: fullMessage,
-        recipients: selectedRecipient,
-        scheduleTime: scheduleTime
-      })
-    });
-    */
-    
-    // Mock 發送成功
-    const now = new Date();
-    const timeStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-    
-    const tbody = document.getElementById('historyTbody');
-    if (tbody.rows[0].cells.length === 1) {
-      tbody.innerHTML = '';
+    try {
+      // 實際呼叫後端 API 發送訊息
+      const response = await fetch('/admin/api/line/broadcast', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Password': sessionStorage.getItem('adminPassword') || ''
+        },
+        body: JSON.stringify({
+          access_token: lineConfig.accessToken,
+          message: fullMessage,
+          recipients: selectedRecipient,
+          scheduleTime: scheduleTime
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok && result.success) {
+        // 發送成功
+        const now = new Date();
+        const timeStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+        
+        const tbody = document.getElementById('historyTbody');
+        if (tbody.rows[0].cells.length === 1) {
+          tbody.innerHTML = '';
+        }
+        
+        const newRow = tbody.insertRow(0);
+        newRow.innerHTML = `
+          <td>${scheduleTime || timeStr}</td>
+          <td>${subject}</td>
+          <td>${selectedRecipient === 'all' ? '全部學生' : selectedRecipient === 'active' ? '在學學生' : '指定學生'}</td>
+          <td><span class="badge ${scheduleTime ? 'badge-pending' : 'badge-sent'}">${scheduleTime ? '排程中' : '已發送'}</span></td>
+          <td>成功</td>
+        `;
+        
+        alert('訊息發送成功！');
+        document.getElementById('messageForm').reset();
+        updatePreview();
+        updateStats();
+      } else {
+        // 發送失敗
+        alert('訊息發送失敗：' + (result.error || '未知錯誤'));
+      }
+    } catch (error) {
+      alert('發送錯誤：' + error.message);
     }
-    
-    const newRow = tbody.insertRow(0);
-    newRow.innerHTML = `
-      <td>${scheduleTime || timeStr}</td>
-      <td>${subject}</td>
-      <td>${selectedRecipient === 'all' ? '全部學生' : selectedRecipient === 'active' ? '在學學生' : '指定學生'}</td>
-      <td><span class="badge ${scheduleTime ? 'badge-pending' : 'badge-sent'}">${scheduleTime ? '排程中' : '已發送'}</span></td>
-      <td>--</td>
-    `;
-    
-    alert(scheduleTime ? '訊息已排程！' : '訊息發送成功！\n\n注意：實際發送需要正確設定 LINE API 並實作後端串接。');
-    document.getElementById('messageForm').reset();
-    updatePreview();
-    updateStats();
   }
 }
 
