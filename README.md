@@ -1,22 +1,21 @@
-# 音樂補習班預約系統
+# 音樂補習班管理系統 - 模組化版本
 
-完整的預約管理系統，包含學生預約網頁 + 管理後台。
+完整的補習班管理系統，採用模組化設計，可彈性擴充功能。
 
-## 檔案結構
+## 📁 檔案結構
 
 ```
 music_booking/
-├── server.py              # Flask 後端（API + 頁面路由）
-├── requirements.txt       # 相依套件
+├── app.py                 # Flask 後端
+├── requirements.txt       # Python 套件
 ├── static/
-│   ├── booking.html       # 學生預約頁面（http://localhost:5000/）
-│   └── admin.html         # 管理後台（http://localhost:5000/admin）
+│   ├── index.html         # 模組化首頁 ← 新增
+│   ├── booking.html       # 學生預約頁面
+│   └── admin.html         # 管理後台
 └── booking.db             # SQLite 資料庫（自動建立）
 ```
 
----
-
-## 快速啟動
+## 🚀 快速啟動
 
 ### 1. 安裝套件
 ```bash
@@ -25,20 +24,101 @@ pip install -r requirements.txt
 
 ### 2. 啟動伺服器
 ```bash
-python server.py
+python app.py
 ```
 
-啟動後自動建立資料庫，並載入 3 位範例老師（14 天時段）。
-
 ### 3. 開啟頁面
-- 學生預約：http://localhost:5000
-- 管理後台：http://localhost:5000/admin（預設密碼：`admin123`）
+- **模組化首頁**：http://localhost:5000
+- **學生預約**：http://localhost:5000/booking
+- **管理後台**：http://localhost:5000/admin（密碼：`admin123`）
 
----
+## 📦 系統模組
 
-## 環境變數（選用）
+系統採用模組化設計，可依需求啟用不同功能：
 
-| 變數名稱 | 說明 | 預設值 |
+### 1️⃣ LINE串接模組（FREE - $3000/年）
+- ✅ 免下載額外 APP
+- ✅ 發送到班通知、課表、繳費提醒等推播
+- ✅ 連接「學費長」與「補習班」，提升互動黏著度
+
+**功能頁面：**
+- 💬 訊息推播
+- 🔔 通知設定
+- 🎯 互動功能
+
+### 2️⃣ 基本功能模組（$7000/年）
+- ✅ 師生管理、繳費單輸出
+- ✅ 人員權限、學生繳費
+- ✅ 財務報表、課表系統
+- ✅ 會計科目、課程提醒
+- ✅ 統資登錄、CEO每日報
+
+**功能頁面：**
+- 👨‍🏫 師生管理
+- 💰 財務報表
+- 📊 會計科目
+- 📚 課表系統
+- 📈 CEO每日報
+
+### 3️⃣ 形象網站模組（$3000/年）
+- ✅ 提供前台網站空間與流量
+- ✅ 可自訂網站首頁設計與內容
+- ✅ 學生線上報名系統
+- ✅ 學生專屬登入入口，可查詢個人課表
+
+**功能頁面：**
+- 🎨 網站設計
+- 📝 內容管理
+- 🌐 線上報名
+
+## 💡 使用方式
+
+### 在首頁啟用模組
+
+1. 進入首頁：http://localhost:5000
+2. 點擊模組卡片啟用/停用
+3. 啟用後，左側選單會顯示對應功能
+4. 系統會自動計算年度費用
+
+### 模組狀態保存
+
+- 模組啟用狀態會自動保存在瀏覽器
+- 重新整理頁面後設定會保留
+- 使用 localStorage 技術
+
+## 🔧 技術特點
+
+### 彈性架構
+- ✅ 模組化設計，易於擴充
+- ✅ 每個模組獨立頁面
+- ✅ 側邊欄動態顯示
+- ✅ 響應式設計（支援手機）
+
+### 未來擴充
+新增模組只需：
+1. 在 `index.html` 新增模組卡片
+2. 在側邊欄加入對應導航
+3. 建立功能頁面
+
+## 🌐 API 說明
+
+| 方法 | 路徑 | 說明 |
+|---|---|---|
+| GET | `/` | 模組化首頁 |
+| GET | `/booking` | 學生預約頁面 |
+| GET | `/admin` | 管理後台 |
+| GET | `/api/teachers` | 取得老師列表 |
+| GET | `/api/courses` | 取得課程列表 |
+| GET | `/api/slots` | 取得可用時段 |
+| POST | `/api/book` | 送出預約 |
+| GET | `/admin/api/bookings` | 查看預約（需密碼）|
+| POST | `/admin/api/bookings/:id/cancel` | 取消預約（需密碼）|
+| GET | `/admin/api/teachers` | 管理老師（需密碼）|
+| POST | `/admin/api/teachers` | 新增老師（需密碼）|
+
+## 🔐 環境變數
+
+| 變數 | 說明 | 預設值 |
 |---|---|---|
 | `SECRET_KEY` | Flask Session 金鑰 | music-school-secret-2024 |
 | `ADMIN_PASSWORD` | 管理後台密碼 | admin123 |
@@ -46,39 +126,39 @@ python server.py
 設定方式：
 ```bash
 export ADMIN_PASSWORD="你的密碼"
-python server.py
+python app.py
 ```
 
----
+## 📱 響應式設計
 
-## API 說明
+- ✅ 桌面版：完整側邊欄
+- ✅ 平板/手機：折疊式選單
+- ✅ 右下角浮動按鈕開啟選單
 
-| 方法 | 路徑 | 說明 |
-|---|---|---|
-| GET | `/api/teachers` | 取得老師列表 |
-| GET | `/api/courses` | 取得課程列表 |
-| GET | `/api/slots?teacher_id=1&days=14` | 取得可用時段 |
-| POST | `/api/book` | 送出預約 |
-| GET | `/admin/api/bookings` | 查看所有預約（需密碼） |
-| POST | `/admin/api/bookings/:id/cancel` | 取消預約（需密碼） |
-| GET | `/admin/api/teachers` | 管理老師列表（需密碼） |
-| POST | `/admin/api/teachers` | 新增老師（需密碼） |
-| DELETE | `/admin/api/teachers/:id` | 停用老師（需密碼） |
+## 🎨 設計特色
 
----
+- **紫色主題**：專業、現代
+- **卡片式設計**：清晰易讀
+- **動畫效果**：流暢體驗
+- **一致性介面**：統一風格
 
-## 管理後台功能
+## 📝 注意事項
 
-- 查看所有預約（可依狀態篩選、搜尋學生姓名/電話）
-- 取消預約（時段自動釋放）
-- 統計資料（總預約數、已確認、今日課程、預估收入）
-- 新增 / 停用老師（新增時自動建立 14 天時段）
+1. 首次啟動會自動建立範例資料（3位老師）
+2. 模組啟用狀態僅保存在本地瀏覽器
+3. 清除瀏覽器快取會重置模組設定
+4. 各模組頁面目前為示範介面，需後續開發
 
----
+## 🚀 部署建議
 
-## 部署到 Railway / Render
-
+### Railway / Render
 1. 上傳到 GitHub
-2. 新增環境變數 `ADMIN_PASSWORD`
+2. 設定環境變數 `ADMIN_PASSWORD`
 3. 啟動指令：`gunicorn server:app`
-4. 將 LINE Bot Webhook URL 改為部署後的網址
+4. 將檔案放在 `static/` 目錄
+
+---
+
+## 📞 聯絡資訊
+
+如有問題或建議，歡迎透過系統回饋功能聯繫我們。
