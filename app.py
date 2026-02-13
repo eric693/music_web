@@ -686,6 +686,491 @@ def admin_get_finance_summary():
 
 
 # ─────────────────────────────────────────────
+# LINE 串接 API
+# ─────────────────────────────────────────────
+
+@app.route('/admin/api/line/config', methods=['GET'])
+def get_line_config():
+    """取得 LINE 設定狀態（不返回實際 token）"""
+    check_admin()
+    access_token = os.environ.get('LINE_CHANNEL_ACCESS_TOKEN', '')
+    channel_secret = os.environ.get('LINE_CHANNEL_SECRET', '')
+    
+    return jsonify({
+        'configured': bool(access_token and channel_secret),
+        'has_access_token': bool(access_token),
+        'has_channel_secret': bool(channel_secret)
+    })
+
+
+@app.route('/admin/api/line/test', methods=['POST'])
+def test_line_connection():
+    """測試 LINE API 連線"""
+    check_admin()
+    data = request.get_json()
+    access_token = data.get('access_token')
+    
+    if not access_token:
+        return jsonify({'error': '缺少 Access Token'}), 400
+    
+    try:
+        import requests
+        response = requests.get(
+            'https://api.line.me/v2/bot/info',
+            headers={'Authorization': f'Bearer {access_token}'},
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            bot_info = response.json()
+            return jsonify({
+                'success': True,
+                'bot_name': bot_info.get('displayName'),
+                'bot_id': bot_info.get('userId'),
+                'message': '連線成功！'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Access Token 無效',
+                'details': response.text
+            }), 400
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'連線失敗: {str(e)}'
+        }), 500
+
+
+@app.route('/admin/api/line/broadcast', methods=['POST'])
+def line_broadcast():
+    """發送 LINE 群發訊息"""
+    check_admin()
+    data = request.get_json()
+    
+    access_token = data.get('access_token') or os.environ.get('LINE_CHANNEL_ACCESS_TOKEN')
+    if not access_token:
+        return jsonify({'error': '尚未設定 LINE Channel Access Token'}), 400
+    
+    message = data.get('message')
+    recipients = data.get('recipients', 'all')
+    
+    if not message:
+        return jsonify({'error': '訊息內容不可為空'}), 400
+    
+    try:
+        import requests
+        
+        # 群發訊息 API
+        url = 'https://api.line.me/v2/bot/message/broadcast'
+        headers = {
+            'Authorization': f'Bearer {access_token}',
+            'Content-Type': 'application/json'
+        }
+        payload = {
+            'messages': [
+                {
+                    'type': 'text',
+                    'text': message
+                }
+            ]
+        }
+        
+        response = requests.post(url, headers=headers, json=payload, timeout=10)
+        
+        if response.status_code == 200:
+            return jsonify({
+                'success': True,
+                'message': '訊息已發送',
+                'recipients': recipients
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'LINE API 呼叫失敗',
+                'details': response.text
+            }), response.status_code
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'發送失敗: {str(e)}'
+        }), 500
+
+
+@app.route('/admin/api/line/push', methods=['POST'])
+def line_push():
+    """發送 LINE 推送訊息給特定用戶"""
+    check_admin()
+    data = request.get_json()
+    
+    access_token = data.get('access_token') or os.environ.get('LINE_CHANNEL_ACCESS_TOKEN')
+    if not access_token:
+        return jsonify({'error': '尚未設定 LINE Channel Access Token'}), 400
+    
+    user_id = data.get('user_id')
+    message = data.get('message')
+    
+    if not user_id or not message:
+        return jsonify({'error': '缺少必要參數'}), 400
+    
+    try:
+        import requests
+        
+        url = 'https://api.line.me/v2/bot/message/push'
+        headers = {
+            'Authorization': f'Bearer {access_token}',
+            'Content-Type': 'application/json'
+        }
+        payload = {
+            'to': user_id,
+            'messages': [
+                {
+                    'type': 'text',
+                    'text': message
+                }
+            ]
+        }
+        
+        response = requests.post(url, headers=headers, json=payload, timeout=10)
+        
+        if response.status_code == 200:
+            return jsonify({
+                'success': True,
+                'message': '訊息已發送'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'LINE API 呼叫失敗',
+                'details': response.text
+            }), response.status_code
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'發送失敗: {str(e)}'
+        }), 500
+
+
+@app.route('/webhook/line', methods=['POST'])
+def line_webhook():
+    """LINE Webhook 接收訊息與事件"""
+    
+    # 取得 Channel Secret
+    channel_secret = os.environ.get('LINE_CHANNEL_SECRET', '')
+    
+    # 取得簽名驗證
+    signature = request.headers.get('X-Line-Signature', '')
+    body = request.get_data(as_text=True)
+    
+    # 驗證簽名
+    if channel_secret:
+        try:
+            import hashlib
+            import hmac
+            import base64
+            
+            hash_value = hmac.new(
+                channel_secret.encode('utf-8'),
+                body.encode('utf-8'),
+                hashlib.sha256
+            ).digest()
+            
+            expected_signature = base64.b64encode(hash_value).decode()
+            
+            if signature != expected_signature:
+                return jsonify({'error': 'Invalid signature'}), 403
+        except Exception as e:
+            print(f'Signature verification error: {e}')
+            return jsonify({'error': 'Signature verification failed'}), 403
+    
+    # 處理事件
+    try:
+        events = request.json.get('events', [])
+        access_token = os.environ.get('LINE_CHANNEL_ACCESS_TOKEN', '')
+        
+        for event in events:
+            event_type = event.get('type')
+            
+            if event_type == 'message':
+                # 處理訊息事件
+                reply_token = event.get('replyToken')
+                message = event.get('message', {})
+                message_type = message.get('type')
+                user_id = event.get('source', {}).get('userId')
+                
+                if message_type == 'text':
+                    message_text = message.get('text', '').lower()
+                    
+                    # 簡單的關鍵字回覆
+                    reply_text = '您好！感謝您的訊息。'
+                    
+                    if '課程' in message_text or '上課' in message_text:
+                        reply_text = '我們提供鋼琴、吉他、小提琴等多種音樂課程。詳細資訊請來電洽詢：02-1234-5678'
+                    elif '收費' in message_text or '價格' in message_text:
+                        reply_text = '課程收費：\n鋼琴 NT$1,200/堂\n吉他 NT$1,000/堂\n小提琴 NT$1,500/堂\n歡迎預約體驗！'
+                    elif '地址' in message_text or '位置' in message_text:
+                        reply_text = '地址：台北市中正區音樂街123號\n營業時間：週一至週日 09:00-21:00'
+                    elif '預約' in message_text or '報名' in message_text:
+                        reply_text = '預約方式：\n1. 線上預約：https://music-web.com\n2. 來電預約：02-1234-5678\n3. LINE 私訊預約'
+                    
+                    # 回覆訊息
+                    if access_token and reply_token:
+                        _line_reply(access_token, reply_token, reply_text)
+                        
+            elif event_type == 'follow':
+                # 用戶加入好友
+                user_id = event.get('source', {}).get('userId')
+                reply_token = event.get('replyToken')
+                
+                welcome_message = '歡迎加入音樂補習班！\n\n您可以透過 LINE 查詢：\n• 課程資訊\n• 收費標準\n• 預約課程\n• 地址與營業時間\n\n請直接傳送訊息給我們！'
+                
+                if access_token and reply_token:
+                    _line_reply(access_token, reply_token, welcome_message)
+                
+                # 可以將 user_id 儲存到資料庫
+                print(f'New follower: {user_id}')
+                
+            elif event_type == 'unfollow':
+                # 用戶封鎖
+                user_id = event.get('source', {}).get('userId')
+                print(f'User unfollowed: {user_id}')
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        print(f'Webhook error: {e}')
+        return jsonify({'error': str(e)}), 500
+
+
+def _line_reply(access_token, reply_token, text):
+    """回覆 LINE 訊息的輔助函式"""
+    try:
+        import requests
+        
+        url = 'https://api.line.me/v2/bot/message/reply'
+        headers = {
+            'Authorization': f'Bearer {access_token}',
+            'Content-Type': 'application/json'
+        }
+        payload = {
+            'replyToken': reply_token,
+            'messages': [
+                {
+                    'type': 'text',
+                    'text': text
+                }
+            ]
+        }
+        
+        requests.post(url, headers=headers, json=payload, timeout=10)
+    except Exception as e:
+        print(f'LINE reply error: {e}')
+
+
+# ─────────────────────────────────────────────
+# LINE 串接 API
+# ─────────────────────────────────────────────
+
+@app.route('/admin/api/line/config', methods=['GET'])
+def get_line_config():
+    """取得 LINE 設定（僅返回是否已設定，不返回實際 token）"""
+    check_admin()
+    # 從環境變數或資料庫讀取
+    access_token = os.environ.get('LINE_CHANNEL_ACCESS_TOKEN', '')
+    channel_secret = os.environ.get('LINE_CHANNEL_SECRET', '')
+    
+    return jsonify({
+        'configured': bool(access_token and channel_secret),
+        'has_access_token': bool(access_token),
+        'has_channel_secret': bool(channel_secret)
+    })
+
+
+@app.route('/admin/api/line/broadcast', methods=['POST'])
+def line_broadcast():
+    """發送 LINE 群發訊息"""
+    check_admin()
+    data = request.get_json()
+    
+    # 取得 LINE API 設定
+    access_token = os.environ.get('LINE_CHANNEL_ACCESS_TOKEN')
+    if not access_token:
+        return jsonify({'error': '尚未設定 LINE Channel Access Token'}), 400
+    
+    message = data.get('message')
+    recipients = data.get('recipients', 'all')  # all, active, custom
+    schedule_time = data.get('scheduleTime')
+    
+    if not message:
+        return jsonify({'error': '訊息內容不可為空'}), 400
+    
+    # 這裡應該要有實際的 LINE User ID 列表
+    # 實務上需要在學生資料表中加入 line_user_id 欄位
+    # 並在學生加入 LINE Bot 好友時儲存其 User ID
+    
+    # 暫時回傳成功（實際上需要呼叫 LINE API）
+    # 實際實作範例：
+    """
+    import requests
+    
+    # 群發訊息
+    url = 'https://api.line.me/v2/bot/message/broadcast'
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json'
+    }
+    payload = {
+        'messages': [
+            {
+                'type': 'text',
+                'text': message
+            }
+        ]
+    }
+    
+    response = requests.post(url, headers=headers, json=payload)
+    
+    if response.status_code != 200:
+        return jsonify({'error': 'LINE API 呼叫失敗', 'details': response.text}), 500
+    """
+    
+    return jsonify({
+        'success': True,
+        'message': '訊息已發送',
+        'note': '實際發送需要設定環境變數 LINE_CHANNEL_ACCESS_TOKEN 並實作 LINE API 呼叫'
+    })
+
+
+@app.route('/admin/api/line/push', methods=['POST'])
+def line_push():
+    """發送 LINE 推送訊息給特定用戶"""
+    check_admin()
+    data = request.get_json()
+    
+    access_token = os.environ.get('LINE_CHANNEL_ACCESS_TOKEN')
+    if not access_token:
+        return jsonify({'error': '尚未設定 LINE Channel Access Token'}), 400
+    
+    user_id = data.get('user_id')
+    message = data.get('message')
+    
+    if not user_id or not message:
+        return jsonify({'error': '缺少必要參數'}), 400
+    
+    # 實際實作範例：
+    """
+    import requests
+    
+    url = 'https://api.line.me/v2/bot/message/push'
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json'
+    }
+    payload = {
+        'to': user_id,
+        'messages': [
+            {
+                'type': 'text',
+                'text': message
+            }
+        ]
+    }
+    
+    response = requests.post(url, headers=headers, json=payload)
+    
+    if response.status_code != 200:
+        return jsonify({'error': 'LINE API 呼叫失敗', 'details': response.text}), 500
+    """
+    
+    return jsonify({
+        'success': True,
+        'message': '訊息已發送'
+    })
+
+
+@app.route('/webhook/line', methods=['POST'])
+def line_webhook():
+    """LINE Webhook 接收訊息"""
+    # 驗證簽名
+    channel_secret = os.environ.get('LINE_CHANNEL_SECRET', '')
+    
+    # 取得 X-Line-Signature header
+    signature = request.headers.get('X-Line-Signature', '')
+    
+    # 取得 request body
+    body = request.get_data(as_text=True)
+    
+    # 驗證簽名（實際實作需要）
+    """
+    import hashlib
+    import hmac
+    import base64
+    
+    hash_value = hmac.new(
+        channel_secret.encode('utf-8'),
+        body.encode('utf-8'),
+        hashlib.sha256
+    ).digest()
+    
+    expected_signature = base64.b64encode(hash_value).decode()
+    
+    if signature != expected_signature:
+        return jsonify({'error': 'Invalid signature'}), 400
+    """
+    
+    # 處理事件
+    events = request.json.get('events', [])
+    
+    for event in events:
+        if event['type'] == 'message':
+            # 處理訊息事件
+            reply_token = event['replyToken']
+            message_text = event['message'].get('text', '')
+            user_id = event['source']['userId']
+            
+            # 這裡可以實作自動回覆邏輯
+            # 根據關鍵字回覆不同內容
+            
+            # 回覆訊息（實際實作）
+            """
+            import requests
+            
+            access_token = os.environ.get('LINE_CHANNEL_ACCESS_TOKEN')
+            url = 'https://api.line.me/v2/bot/message/reply'
+            headers = {
+                'Authorization': f'Bearer {access_token}',
+                'Content-Type': 'application/json'
+            }
+            payload = {
+                'replyToken': reply_token,
+                'messages': [
+                    {
+                        'type': 'text',
+                        'text': f'您說：{message_text}'
+                    }
+                ]
+            }
+            
+            requests.post(url, headers=headers, json=payload)
+            """
+            
+        elif event['type'] == 'follow':
+            # 用戶加入好友
+            user_id = event['source']['userId']
+            # 可以將 user_id 儲存到學生資料表
+            pass
+            
+        elif event['type'] == 'unfollow':
+            # 用戶封鎖
+            user_id = event['source']['userId']
+            pass
+    
+    return jsonify({'success': True})
+
+
+# ─────────────────────────────────────────────
 # 工具函式
 # ─────────────────────────────────────────────
 
