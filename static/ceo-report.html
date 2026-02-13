@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CEO每日報</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --purple: #7c3aed; --purple-light: #ede9fe; --text: #1a1a2e;
+  --sub: #6b7280; --border: #e5e7eb; --bg: #f3f4f6; --white: #fff;
+  --green: #10b981; --red: #ef4444; --blue: #3b82f6; --radius: 10px;
+}
+body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
+
+.header { background: linear-gradient(135deg, var(--purple) 0%, #6d28d9 100%); color: white; border-radius: var(--radius); padding: 32px 28px; margin-bottom: 24px; }
+.header h2 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+.header p { font-size: 14px; opacity: 0.9; }
+.header .date { font-size: 16px; font-weight: 600; margin-top: 12px; }
+
+/* KPI Cards */
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.kpi-card { background: white; border-radius: var(--radius); padding: 24px; border: 1px solid var(--border); position: relative; overflow: hidden; }
+.kpi-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; }
+.kpi-card.income::before { background: var(--green); }
+.kpi-card.students::before { background: var(--purple); }
+.kpi-card.classes::before { background: var(--blue); }
+.kpi-card.attendance::before { background: var(--red); }
+.kpi-label { font-size: 13px; color: var(--sub); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+.kpi-value { font-size: 32px; font-weight: 700; margin-bottom: 8px; }
+.kpi-value.green { color: var(--green); }
+.kpi-value.purple { color: var(--purple); }
+.kpi-value.blue { color: var(--blue); }
+.kpi-value.red { color: var(--red); }
+.kpi-change { font-size: 12px; }
+.kpi-change.up { color: var(--green); }
+.kpi-change.down { color: var(--red); }
+
+/* Sections */
+.section { background: white; border-radius: var(--radius); padding: 24px; margin-bottom: 20px; border: 1px solid var(--border); }
+.section-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid var(--border); }
+
+/* Lists */
+.info-list { list-style: none; }
+.info-list li { padding: 12px 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+.info-list li:last-child { border-bottom: none; }
+.info-label { font-size: 14px; color: var(--sub); }
+.info-value { font-size: 14px; font-weight: 600; }
+
+/* Charts */
+.chart-placeholder { background: var(--bg); border-radius: 8px; padding: 40px; text-align: center; color: var(--sub); font-size: 14px; }
+
+.highlights { display: grid; gap: 12px; }
+.highlight-item { padding: 16px; background: var(--purple-light); border-radius: 8px; border-left: 3px solid var(--purple); }
+.highlight-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.highlight-desc { font-size: 13px; color: var(--sub); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h2>CEO 每日報表</h2>
+  <p>今日營運數據與關鍵指標</p>
+  <div class="date" id="reportDate">2026年2月13日 週四</div>
+</div>
+
+<!-- KPI Cards -->
+<div class="kpi-grid">
+  <div class="kpi-card income">
+    <div class="kpi-label">今日收入</div>
+    <div class="kpi-value green" id="todayIncome">NT$ 0</div>
+    <div class="kpi-change up" id="incomeChange">較昨日 +0%</div>
+  </div>
+  <div class="kpi-card students">
+    <div class="kpi-label">在學學生</div>
+    <div class="kpi-value purple" id="activeStudents">0</div>
+    <div class="kpi-change up" id="studentChange">本週 +0</div>
+  </div>
+  <div class="kpi-card classes">
+    <div class="kpi-label">今日課程</div>
+    <div class="kpi-value blue" id="todayClasses">0</div>
+    <div class="kpi-change" id="classChange">本週總計 0 堂</div>
+  </div>
+  <div class="kpi-card attendance">
+    <div class="kpi-label">出席率</div>
+    <div class="kpi-value red" id="attendanceRate">0%</div>
+    <div class="kpi-change" id="attendanceChange">本月平均 0%</div>
+  </div>
+</div>
+
+<!-- Today Highlights -->
+<div class="section">
+  <div class="section-title">今日重點</div>
+  <div class="highlights" id="highlights">
+    <div class="highlight-item">
+      <div class="highlight-title">新增學生</div>
+      <div class="highlight-desc">今日新增 0 位學生</div>
+    </div>
+    <div class="highlight-item">
+      <div class="highlight-title">課程狀態</div>
+      <div class="highlight-desc">今日已完成 0 堂課程，待完成 0 堂</div>
+    </div>
+    <div class="highlight-item">
+      <div class="highlight-title">繳費提醒</div>
+      <div class="highlight-desc">本月需追蹤繳費學生 0 位</div>
+    </div>
+  </div>
+</div>
+
+<!-- Financial Overview -->
+<div class="section">
+  <div class="section-title">財務概況</div>
+  <ul class="info-list">
+    <li>
+      <span class="info-label">本月收入</span>
+      <span class="info-value" style="color: var(--green);" id="monthIncome">NT$ 0</span>
+    </li>
+    <li>
+      <span class="info-label">本月支出</span>
+      <span class="info-value" style="color: var(--red);" id="monthExpense">NT$ 0</span>
+    </li>
+    <li>
+      <span class="info-label">本月淨收入</span>
+      <span class="info-value" style="color: var(--purple);" id="monthNet">NT$ 0</span>
+    </li>
+    <li>
+      <span class="info-label">年度累計收入</span>
+      <span class="info-value" id="yearIncome">NT$ 0</span>
+    </li>
+  </ul>
+</div>
+
+<!-- Student Stats -->
+<div class="section">
+  <div class="section-title">學生統計</div>
+  <ul class="info-list">
+    <li>
+      <span class="info-label">在學學生</span>
+      <span class="info-value" id="studentsActive">0 位</span>
+    </li>
+    <li>
+      <span class="info-label">本月新生</span>
+      <span class="info-value" style="color: var(--green);" id="studentsNew">0 位</span>
+    </li>
+    <li>
+      <span class="info-label">本月流失</span>
+      <span class="info-value" style="color: var(--red);" id="studentsLost">0 位</span>
+    </li>
+    <li>
+      <span class="info-label">學生留存率</span>
+      <span class="info-value" id="retentionRate">0%</span>
+    </li>
+  </ul>
+</div>
+
+<!-- Trend Chart -->
+<div class="section">
+  <div class="section-title">本週趨勢</div>
+  <div class="chart-placeholder">
+    圖表區域（收入趨勢、課程數量、學生增長）<br>
+    可整合 Chart.js 或其他圖表庫
+  </div>
+</div>
+
+<script>
+const API = '';
+const pw = sessionStorage.getItem('adminPassword') || '';
+
+async function loadReport() {
+  // Set current date
+  const now = new Date();
+  const days = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
+  document.getElementById('reportDate').textContent = 
+    `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 ${days[now.getDay()]}`;
+
+  // Load data
+  const [summary, students, bookings, payments, expenses] = await Promise.all([
+    fetch(`${API}/admin/api/finance/summary`, { headers: { 'X-Admin-Password': pw } }).then(r => r.json()),
+    fetch(`${API}/admin/api/students`, { headers: { 'X-Admin-Password': pw } }).then(r => r.json()),
+    fetch(`${API}/admin/api/bookings`, { headers: { 'X-Admin-Password': pw } }).then(r => r.json()),
+    fetch(`${API}/admin/api/payments`, { headers: { 'X-Admin-Password': pw } }).then(r => r.json()),
+    fetch(`${API}/admin/api/expenses`, { headers: { 'X-Admin-Password': pw } }).then(r => r.json()),
+  ]);
+
+  const today = now.toISOString().split('T')[0];
+  const thisMonth = today.substring(0, 7);
+  const thisYear = today.substring(0, 4);
+
+  // Today income
+  const todayPayments = payments.filter(p => p.payment_date === today);
+  const todayIncome = todayPayments.reduce((sum, p) => sum + p.amount, 0);
+  document.getElementById('todayIncome').textContent = `NT$ ${todayIncome.toLocaleString()}`;
+
+  // Active students
+  const activeStudents = students.filter(s => s.is_active).length;
+  document.getElementById('activeStudents').textContent = activeStudents;
+  document.getElementById('studentsActive').textContent = `${activeStudents} 位`;
+
+  // Today classes
+  const todayBookings = bookings.filter(b => b.date === today && b.status === 'confirmed');
+  document.getElementById('todayClasses').textContent = todayBookings.length;
+
+  // Week classes
+  const weekStart = new Date(now);
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+  const weekBookings = bookings.filter(b => {
+    const d = new Date(b.date);
+    return d >= weekStart && d <= weekEnd && b.status === 'confirmed';
+  });
+  document.getElementById('classChange').textContent = `本週總計 ${weekBookings.length} 堂`;
+
+  // Attendance (mock)
+  document.getElementById('attendanceRate').textContent = '95%';
+  document.getElementById('attendanceChange').textContent = '本月平均 93%';
+
+  // Month finance
+  const monthPayments = payments.filter(p => p.month === thisMonth);
+  const monthIncome = monthPayments.reduce((sum, p) => sum + p.amount, 0);
+  const monthExpenses = expenses.filter(e => e.expense_date.startsWith(thisMonth));
+  const monthExpense = monthExpenses.reduce((sum, e) => sum + e.amount, 0);
+  
+  document.getElementById('monthIncome').textContent = `NT$ ${monthIncome.toLocaleString()}`;
+  document.getElementById('monthExpense').textContent = `NT$ ${monthExpense.toLocaleString()}`;
+  document.getElementById('monthNet').textContent = `NT$ ${(monthIncome - monthExpense).toLocaleString()}`;
+
+  // Year income
+  const yearPayments = payments.filter(p => p.payment_date.startsWith(thisYear));
+  const yearIncome = yearPayments.reduce((sum, p) => sum + p.amount, 0);
+  document.getElementById('yearIncome').textContent = `NT$ ${yearIncome.toLocaleString()}`;
+
+  // New students this month
+  const monthStudents = students.filter(s => s.enrollment_date.startsWith(thisMonth));
+  document.getElementById('studentsNew').textContent = `${monthStudents.length} 位`;
+
+  // Lost students (mock)
+  document.getElementById('studentsLost').textContent = '0 位';
+  document.getElementById('retentionRate').textContent = '100%';
+
+  // Update highlights
+  document.querySelector('.highlights').innerHTML = `
+    <div class="highlight-item">
+      <div class="highlight-title">新增學生</div>
+      <div class="highlight-desc">今日新增 0 位學生，本月累計 ${monthStudents.length} 位</div>
+    </div>
+    <div class="highlight-item">
+      <div class="highlight-title">課程狀態</div>
+      <div class="highlight-desc">今日排定 ${todayBookings.length} 堂課程，本週總計 ${weekBookings.length} 堂</div>
+    </div>
+    <div class="highlight-item">
+      <div class="highlight-title">收入狀況</div>
+      <div class="highlight-desc">今日收入 NT$ ${todayIncome.toLocaleString()}，本月累計 NT$ ${monthIncome.toLocaleString()}</div>
+    </div>
+  `;
+}
+
+// Init
+loadReport();
+</script>
+
+</body>
+</html>

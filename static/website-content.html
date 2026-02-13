@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>內容管理</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --purple: #7c3aed; --purple-light: #ede9fe; --text: #1a1a2e;
+  --sub: #6b7280; --border: #e5e7eb; --bg: #f3f4f6; --white: #fff;
+  --green: #10b981; --red: #ef4444; --radius: 10px;
+}
+body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
+
+.header { margin-bottom: 24px; }
+.header h2 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+.header p { font-size: 14px; color: var(--sub); }
+
+.tabs { display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 2px solid var(--border); }
+.tab { padding: 10px 20px; font-size: 14px; font-weight: 500; color: var(--sub); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .2s; }
+.tab.active { color: var(--purple); border-bottom-color: var(--purple); }
+
+.tab-pane { display: none; background: white; border-radius: var(--radius); padding: 24px; border: 1px solid var(--border); }
+.tab-pane.active { display: block; }
+
+.form-group { margin-bottom: 20px; }
+.form-label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+.form-input { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; font-family: inherit; }
+.form-input:focus { outline: none; border-color: var(--purple); }
+.form-textarea { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; font-family: inherit; min-height: 150px; resize: vertical; }
+
+.btn { padding: 12px 24px; border-radius: var(--radius); font-size: 14px; font-weight: 500; cursor: pointer; border: none; font-family: inherit; transition: all .15s; }
+.btn-primary { background: var(--purple); color: white; }
+.btn-primary:hover { background: #6d28d9; }
+
+.news-list { display: grid; gap: 12px; margin-top: 16px; }
+.news-item { background: var(--bg); padding: 16px; border-radius: var(--radius); border: 1px solid var(--border); }
+.news-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.news-title { font-size: 15px; font-weight: 600; }
+.news-date { font-size: 12px; color: var(--sub); }
+.news-content { font-size: 13px; color: var(--sub); line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h2>內容管理</h2>
+  <p>編輯網站頁面內容</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('about')">關於我們</div>
+  <div class="tab" onclick="switchTab('courses')">課程介紹</div>
+  <div class="tab" onclick="switchTab('teachers')">師資陣容</div>
+  <div class="tab" onclick="switchTab('news')">最新消息</div>
+  <div class="tab" onclick="switchTab('contact')">聯絡資訊</div>
+</div>
+
+<div class="tab-pane active" id="tab-about">
+  <div class="form-group">
+    <label class="form-label">補習班簡介</label>
+    <textarea class="form-textarea" id="aboutText" rows="8">我們是一家專注於音樂教育的專業補習班，提供鋼琴、吉他、小提琴等多種樂器的一對一教學服務。
+
+我們的教學理念是因材施教，根據每位學生的程度與需求，量身打造最適合的學習計畫。
+
+擁有專業的師資團隊與完善的教學設備，致力於培養學生的音樂素養與演奏技巧。</textarea>
+  </div>
+  <button class="btn btn-primary" onclick="saveContent('about')">儲存</button>
+</div>
+
+<div class="tab-pane" id="tab-courses">
+  <div class="form-group">
+    <label class="form-label">課程介紹</label>
+    <textarea class="form-textarea" id="coursesText" rows="10">【鋼琴課程】
+適合各年齡層學習，從古典到流行音樂，培養扎實的演奏技巧。
+
+【吉他課程】
+木吉他、電吉他、烏克麗麗，從基礎到進階，輕鬆學習彈唱。
+
+【小提琴課程】
+專業小提琴教學，培養音感與演奏技巧，參加檢定與比賽。
+
+【其他課程】
+長笛、薩克斯風、爵士鼓等多種樂器課程，歡迎洽詢。</textarea>
+  </div>
+  <button class="btn btn-primary" onclick="saveContent('courses')">儲存</button>
+</div>
+
+<div class="tab-pane" id="tab-teachers">
+  <div class="form-group">
+    <label class="form-label">師資介紹</label>
+    <textarea class="form-textarea" id="teachersText" rows="8">我們擁有專業且經驗豐富的教師團隊：
+
+• 音樂科班畢業，具備專業演奏與教學經驗
+• 定期參加音樂教學研習，持續精進教學技巧
+• 耐心細心，因材施教，深受學生與家長信賴
+
+歡迎來班試聽，感受我們的專業教學！</textarea>
+  </div>
+  <button class="btn btn-primary" onclick="saveContent('teachers')">儲存</button>
+</div>
+
+<div class="tab-pane" id="tab-news">
+  <button class="btn btn-primary" style="margin-bottom:16px;" onclick="addNews()">新增公告</button>
+  <div class="news-list" id="newsList">
+    <div class="news-item">
+      <div class="news-header">
+        <div class="news-title">2026年春季班招生中</div>
+        <div class="news-date">2026-02-01</div>
+      </div>
+      <div class="news-content">
+        春季班即將開課，現正熱烈招生中！報名即享早鳥優惠，歡迎預約免費體驗課程。
+      </div>
+    </div>
+    <div class="news-item">
+      <div class="news-header">
+        <div class="news-title">音樂發表會圓滿落幕</div>
+        <div class="news-date">2026-01-15</div>
+      </div>
+      <div class="news-content">
+        感謝所有學生與家長的參與，本次音樂發表會圓滿成功！
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="tab-pane" id="tab-contact">
+  <div class="form-group">
+    <label class="form-label">補習班名稱</label>
+    <input class="form-input" value="音樂補習班">
+  </div>
+  <div class="form-group">
+    <label class="form-label">聯絡電話</label>
+    <input class="form-input" value="02-1234-5678">
+  </div>
+  <div class="form-group">
+    <label class="form-label">Email</label>
+    <input class="form-input" type="email" value="info@music-school.com">
+  </div>
+  <div class="form-group">
+    <label class="form-label">地址</label>
+    <input class="form-input" value="台北市中正區音樂街123號">
+  </div>
+  <div class="form-group">
+    <label class="form-label">營業時間</label>
+    <input class="form-input" value="週一至週日 09:00-21:00">
+  </div>
+  <button class="btn btn-primary" onclick="saveContent('contact')">儲存</button>
+</div>
+
+<script>
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById(`tab-${tab}`).classList.add('active');
+}
+
+function saveContent(section) {
+  alert(`${section} 內容已儲存！`);
+}
+
+function addNews() {
+  const title = prompt('請輸入公告標題：');
+  if (title) {
+    const newsList = document.getElementById('newsList');
+    const today = new Date().toISOString().split('T')[0];
+    const newsItem = document.createElement('div');
+    newsItem.className = 'news-item';
+    newsItem.innerHTML = `
+      <div class="news-header">
+        <div class="news-title">${title}</div>
+        <div class="news-date">${today}</div>
+      </div>
+      <div class="news-content">請編輯公告內容...</div>
+    `;
+    newsList.insertBefore(newsItem, newsList.firstChild);
+  }
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>課表系統</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --purple: #7c3aed; --purple-light: #ede9fe; --text: #1a1a2e;
+  --sub: #6b7280; --border: #e5e7eb; --bg: #f3f4f6; --white: #fff;
+  --green: #10b981; --red: #ef4444; --blue: #3b82f6; --radius: 10px;
+}
+body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
+
+.header { margin-bottom: 24px; }
+.header h2 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+.header p { font-size: 14px; color: var(--sub); }
+
+/* Calendar */
+.calendar { background: white; border-radius: var(--radius); padding: 24px; border: 1px solid var(--border); }
+.cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.cal-title { font-size: 18px; font-weight: 600; }
+.cal-nav { padding: 8px 16px; background: var(--purple); color: white; border: none; border-radius: 6px; cursor: pointer; }
+.cal-nav:hover { background: #6d28d9; }
+
+.week-grid { display: grid; grid-template-columns: 80px repeat(7, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); }
+.time-slot { background: white; padding: 12px 8px; min-height: 60px; font-size: 13px; }
+.time-label { background: #f9fafb; padding: 12px 8px; text-align: center; font-size: 12px; font-weight: 600; color: var(--sub); }
+.day-header { background: #f9fafb; padding: 12px; text-align: center; font-weight: 600; font-size: 13px; }
+.day-header.today { background: var(--purple); color: white; }
+
+.class-item { background: var(--purple-light); border-left: 3px solid var(--purple); padding: 6px 8px; margin-bottom: 4px; font-size: 12px; border-radius: 4px; cursor: pointer; }
+.class-item:hover { background: #ddd6fe; }
+.class-name { font-weight: 600; color: var(--purple); }
+.class-teacher { font-size: 11px; color: var(--sub); margin-top: 2px; }
+
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.stat-card { background: white; border-radius: var(--radius); padding: 20px; border: 1px solid var(--border); }
+.stat-label { font-size: 13px; color: var(--sub); margin-bottom: 6px; }
+.stat-value { font-size: 28px; font-weight: 700; color: var(--purple); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h2>課表系統</h2>
+  <p>查看本週課程安排</p>
+</div>
+
+<div class="stats">
+  <div class="stat-card">
+    <div class="stat-label">本週課程</div>
+    <div class="stat-value" id="weekClasses">0</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">今日課程</div>
+    <div class="stat-value" id="todayClasses">0</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">本週教師</div>
+    <div class="stat-value" id="weekTeachers">0</div>
+  </div>
+</div>
+
+<div class="calendar">
+  <div class="cal-header">
+    <button class="cal-nav" onclick="prevWeek()">上週</button>
+    <div class="cal-title" id="weekTitle">2026年2月第2週</div>
+    <button class="cal-nav" onclick="nextWeek()">下週</button>
+  </div>
+
+  <div class="week-grid" id="weekGrid">
+    <div class="time-label"></div>
+    <div class="day-header">週一<br>2/10</div>
+    <div class="day-header">週二<br>2/11</div>
+    <div class="day-header">週三<br>2/12</div>
+    <div class="day-header today">週四<br>2/13</div>
+    <div class="day-header">週五<br>2/14</div>
+    <div class="day-header">週六<br>2/15</div>
+    <div class="day-header">週日<br>2/16</div>
+  </div>
+</div>
+
+<script>
+const API = '';
+const pw = sessionStorage.getItem('adminPassword') || '';
+let currentWeekStart = new Date();
+let bookings = [];
+
+// Get Monday of current week
+currentWeekStart.setDate(currentWeekStart.getDate() - currentWeekStart.getDay() + 1);
+
+async function loadBookings() {
+  const res = await fetch(`${API}/admin/api/bookings`, { headers: { 'X-Admin-Password': pw } });
+  bookings = await res.json();
+  renderWeek();
+}
+
+function renderWeek() {
+  const weekDays = [];
+  for (let i = 0; i < 7; i++) {
+    const day = new Date(currentWeekStart);
+    day.setDate(day.getDate() + i);
+    weekDays.push(day);
+  }
+
+  // Update week title
+  const weekStart = weekDays[0];
+  const weekEnd = weekDays[6];
+  document.getElementById('weekTitle').textContent = 
+    `${weekStart.getFullYear()}年${weekStart.getMonth()+1}月 ${weekStart.getDate()}日 - ${weekEnd.getDate()}日`;
+
+  // Time slots
+  const times = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'];
+  
+  let html = '<div class="time-label"></div>';
+  const today = new Date().toISOString().split('T')[0];
+  
+  // Headers
+  weekDays.forEach((day, i) => {
+    const dateStr = day.toISOString().split('T')[0];
+    const isToday = dateStr === today;
+    const dayNames = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
+    html += `<div class="day-header ${isToday ? 'today' : ''}">${dayNames[day.getDay()]}<br>${day.getMonth()+1}/${day.getDate()}</div>`;
+  });
+
+  // Time slots
+  times.forEach(time => {
+    html += `<div class="time-label">${time}</div>`;
+    weekDays.forEach(day => {
+      const dateStr = day.toISOString().split('T')[0];
+      const dayBookings = bookings.filter(b => 
+        b.date === dateStr && 
+        b.time === time && 
+        b.status === 'confirmed'
+      );
+      
+      let slotHtml = '';
+      dayBookings.forEach(b => {
+        slotHtml += `
+          <div class="class-item" title="${b.student_name}">
+            <div class="class-name">${b.student_name}</div>
+            <div class="class-teacher">${b.teacher}</div>
+          </div>
+        `;
+      });
+      
+      html += `<div class="time-slot">${slotHtml}</div>`;
+    });
+  });
+
+  document.getElementById('weekGrid').innerHTML = html;
+  updateStats();
+}
+
+function updateStats() {
+  const weekStart = new Date(currentWeekStart);
+  const weekEnd = new Date(currentWeekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+  
+  const weekStartStr = weekStart.toISOString().split('T')[0];
+  const weekEndStr = weekEnd.toISOString().split('T')[0];
+  const todayStr = new Date().toISOString().split('T')[0];
+  
+  const weekBookings = bookings.filter(b => 
+    b.date >= weekStartStr && b.date <= weekEndStr && b.status === 'confirmed'
+  );
+  
+  const todayBookings = bookings.filter(b => 
+    b.date === todayStr && b.status === 'confirmed'
+  );
+  
+  const weekTeachers = new Set(weekBookings.map(b => b.teacher)).size;
+  
+  document.getElementById('weekClasses').textContent = weekBookings.length;
+  document.getElementById('todayClasses').textContent = todayBookings.length;
+  document.getElementById('weekTeachers').textContent = weekTeachers;
+}
+
+function prevWeek() {
+  currentWeekStart.setDate(currentWeekStart.getDate() - 7);
+  renderWeek();
+}
+
+function nextWeek() {
+  currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+  renderWeek();
+}
+
+// Init
+loadBookings();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LINE 通知設定</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --purple: #7c3aed; --purple-light: #ede9fe; --text: #1a1a2e;
+  --sub: #6b7280; --border: #e5e7eb; --bg: #f3f4f6; --white: #fff;
+  --green: #10b981; --red: #ef4444; --line: #06c755; --radius: 10px;
+}
+body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
+
+.header { margin-bottom: 24px; }
+.header h2 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+.header p { font-size: 14px; color: var(--sub); }
+
+/* Notification Cards */
+.notification-grid { display: grid; gap: 20px; }
+.notification-card { background: white; border-radius: var(--radius); padding: 24px; border: 1px solid var(--border); }
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid var(--border); }
+.card-title { font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+.card-icon { font-size: 24px; }
+
+/* Toggle Switch */
+.toggle-switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; border-radius: 26px; transition: .3s; }
+.toggle-slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; border-radius: 50%; transition: .3s; }
+input:checked + .toggle-slider { background-color: var(--line); }
+input:checked + .toggle-slider:before { transform: translateX(24px); }
+
+/* Settings Form */
+.settings-group { margin-bottom: 24px; }
+.settings-label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+.settings-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 12px; }
+.form-group { margin-bottom: 16px; }
+.form-label { display: block; font-size: 13px; color: var(--sub); margin-bottom: 6px; }
+.form-input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; font-family: inherit; }
+.form-input:focus { outline: none; border-color: var(--line); }
+.form-select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; }
+.form-textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; font-family: inherit; min-height: 100px; resize: vertical; }
+
+/* Checkbox List */
+.checkbox-list { display: grid; gap: 12px; }
+.checkbox-item { display: flex; align-items: center; gap: 10px; padding: 12px; background: var(--bg); border-radius: 8px; cursor: pointer; transition: all .2s; }
+.checkbox-item:hover { background: #e5e7eb; }
+.checkbox-item input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+.checkbox-label { flex: 1; font-size: 14px; cursor: pointer; }
+
+/* Buttons */
+.btn { padding: 10px 20px; border-radius: var(--radius); font-size: 14px; font-weight: 500; cursor: pointer; border: none; font-family: inherit; transition: all .15s; }
+.btn-primary { background: var(--line); color: white; }
+.btn-primary:hover { background: #05a647; }
+.btn-secondary { background: var(--sub); color: white; }
+
+/* Info Box */
+.info-box { background: #f0fdf4; border: 1px solid #86efac; border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
+.info-box-title { font-size: 14px; font-weight: 600; color: #065f46; margin-bottom: 4px; }
+.info-box-text { font-size: 13px; color: #047857; }
+
+@media (max-width: 768px) {
+  .settings-row { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h2>LINE 通知設定</h2>
+  <p>設定自動化通知規則與發送時間</p>
+</div>
+
+<div class="notification-grid">
+  
+  <!-- Attendance Notification -->
+  <div class="notification-card">
+    <div class="card-header">
+      <div class="card-title">
+        <span class="card-icon">📍</span>
+        到班通知
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="attendanceToggle" checked onchange="toggleNotification('attendance')">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    
+    <div class="info-box">
+      <div class="info-box-title">功能說明</div>
+      <div class="info-box-text">學生到班時自動發送 LINE 通知給家長</div>
+    </div>
+
+    <div class="settings-group" id="attendanceSettings">
+      <div class="form-group">
+        <label class="form-label">通知範本</label>
+        <textarea class="form-textarea" placeholder="【到班通知】
+您的孩子 {學生姓名} 已於 {時間} 到班上課
+老師：{老師姓名}
+課程：{課程名稱}
+
+音樂補習班 關心您"></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="saveSettings('attendance')">儲存設定</button>
+    </div>
+  </div>
+
+  <!-- Class Reminder -->
+  <div class="notification-card">
+    <div class="card-header">
+      <div class="card-title">
+        <span class="card-icon">⏰</span>
+        課程提醒
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="classToggle" checked onchange="toggleNotification('class')">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    
+    <div class="info-box">
+      <div class="info-box-title">功能說明</div>
+      <div class="info-box-text">上課前自動提醒學生與家長</div>
+    </div>
+
+    <div class="settings-group" id="classSettings">
+      <div class="settings-row">
+        <div class="form-group">
+          <label class="form-label">提醒時間</label>
+          <select class="form-select">
+            <option>上課前 1 小時</option>
+            <option selected>上課前 2 小時</option>
+            <option>上課前 3 小時</option>
+            <option>上課前 1 天</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">發送對象</label>
+          <select class="form-select">
+            <option>學生</option>
+            <option>家長</option>
+            <option selected>學生 + 家長</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">通知範本</label>
+        <textarea class="form-textarea" placeholder="【課程提醒】
+{學生姓名} 您好：
+
+提醒您今日有課程：
+時間：{日期} {時間}
+老師：{老師姓名}
+教室：{教室}
+
+請準時到班，謝謝！
+
+音樂補習班"></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="saveSettings('class')">儲存設定</button>
+    </div>
+  </div>
+
+  <!-- Payment Reminder -->
+  <div class="notification-card">
+    <div class="card-header">
+      <div class="card-title">
+        <span class="card-icon">💰</span>
+        繳費提醒
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="paymentToggle" checked onchange="toggleNotification('payment')">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    
+    <div class="info-box">
+      <div class="info-box-title">功能說明</div>
+      <div class="info-box-text">自動提醒未繳費學生</div>
+    </div>
+
+    <div class="settings-group" id="paymentSettings">
+      <div class="settings-row">
+        <div class="form-group">
+          <label class="form-label">提醒頻率</label>
+          <select class="form-select">
+            <option>每月 1 日</option>
+            <option selected>每月 5 日</option>
+            <option>每月 10 日</option>
+            <option>每月 15 日</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">提醒次數</label>
+          <select class="form-select">
+            <option>提醒 1 次</option>
+            <option selected>提醒 2 次</option>
+            <option>提醒 3 次</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">通知範本</label>
+        <textarea class="form-textarea" placeholder="【繳費提醒】
+{家長姓名} 您好：
+
+{學生姓名} 本月學費尚未繳納
+金額：NT$ {金額}
+繳費期限：{日期}
+
+如已繳費請忽略此訊息
+
+音樂補習班"></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="saveSettings('payment')">儲存設定</button>
+    </div>
+  </div>
+
+  <!-- Schedule Notification -->
+  <div class="notification-card">
+    <div class="card-header">
+      <div class="card-title">
+        <span class="card-icon">📅</span>
+        課表通知
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="scheduleToggle" onchange="toggleNotification('schedule')">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    
+    <div class="info-box">
+      <div class="info-box-title">功能說明</div>
+      <div class="info-box-text">定期發送本週課表給學生與家長</div>
+    </div>
+
+    <div class="settings-group" id="scheduleSettings" style="display:none;">
+      <div class="settings-row">
+        <div class="form-group">
+          <label class="form-label">發送時間</label>
+          <select class="form-select">
+            <option selected>每週日 20:00</option>
+            <option>每週一 09:00</option>
+            <option>每週五 18:00</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">發送對象</label>
+          <select class="form-select">
+            <option>學生</option>
+            <option>家長</option>
+            <option selected>學生 + 家長</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">包含資訊</label>
+        <div class="checkbox-list">
+          <label class="checkbox-item">
+            <input type="checkbox" checked>
+            <span class="checkbox-label">上課日期與時間</span>
+          </label>
+          <label class="checkbox-item">
+            <input type="checkbox" checked>
+            <span class="checkbox-label">授課老師</span>
+          </label>
+          <label class="checkbox-item">
+            <input type="checkbox" checked>
+            <span class="checkbox-label">教室位置</span>
+          </label>
+          <label class="checkbox-item">
+            <input type="checkbox">
+            <span class="checkbox-label">課程備註</span>
+          </label>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="saveSettings('schedule')">儲存設定</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function toggleNotification(type) {
+  const toggle = document.getElementById(`${type}Toggle`);
+  const settings = document.getElementById(`${type}Settings`);
+  
+  if (toggle.checked) {
+    settings.style.display = 'block';
+  } else {
+    settings.style.display = 'none';
+  }
+  
+  saveNotificationState();
+}
+
+function saveSettings(type) {
+  alert(`${getTypeName(type)}設定已儲存！`);
+  saveNotificationState();
+}
+
+function getTypeName(type) {
+  const names = {
+    attendance: '到班通知',
+    class: '課程提醒',
+    payment: '繳費提醒',
+    schedule: '課表通知'
+  };
+  return names[type];
+}
+
+function saveNotificationState() {
+  const state = {
+    attendance: document.getElementById('attendanceToggle').checked,
+    class: document.getElementById('classToggle').checked,
+    payment: document.getElementById('paymentToggle').checked,
+    schedule: document.getElementById('scheduleToggle').checked
+  };
+  localStorage.setItem('lineNotificationSettings', JSON.stringify(state));
+}
+
+function loadNotificationState() {
+  const saved = localStorage.getItem('lineNotificationSettings');
+  if (saved) {
+    const state = JSON.parse(saved);
+    Object.keys(state).forEach(key => {
+      const toggle = document.getElementById(`${key}Toggle`);
+      if (toggle) {
+        toggle.checked = state[key];
+        toggleNotification(key);
+      }
+    });
+  }
+}
+
+// Init
+loadNotificationState();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LINE 訊息推播</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --purple: #7c3aed; --purple-light: #ede9fe; --text: #1a1a2e;
+  --sub: #6b7280; --border: #e5e7eb; --bg: #f3f4f6; --white: #fff;
+  --green: #10b981; --red: #ef4444; --line: #06c755; --radius: 10px;
+}
+body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
+
+.header { margin-bottom: 24px; }
+.header h2 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+.header p { font-size: 14px; color: var(--sub); }
+
+/* Stats */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.stat-card { background: white; border-radius: var(--radius); padding: 20px; border: 1px solid var(--border); }
+.stat-label { font-size: 13px; color: var(--sub); margin-bottom: 6px; }
+.stat-value { font-size: 28px; font-weight: 700; color: var(--line); }
+
+/* Layout */
+.content-grid { display: grid; grid-template-columns: 1fr 400px; gap: 20px; }
+.main-section { background: white; border-radius: var(--radius); padding: 24px; border: 1px solid var(--border); }
+.preview-section { background: white; border-radius: var(--radius); padding: 24px; border: 1px solid var(--border); position: sticky; top: 20px; }
+
+/* Form */
+.form-group { margin-bottom: 20px; }
+.form-label { display: block; font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+.form-input { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; font-family: inherit; }
+.form-input:focus { outline: none; border-color: var(--line); }
+.form-textarea { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; font-family: inherit; min-height: 150px; resize: vertical; }
+.form-select { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; }
+
+/* Recipient Selector */
+.recipient-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.chip { padding: 6px 12px; background: var(--line); color: white; border-radius: 20px; font-size: 13px; cursor: pointer; border: 2px solid var(--line); transition: all .2s; }
+.chip:hover { background: #05a647; border-color: #05a647; }
+.chip.outline { background: white; color: var(--line); }
+.chip.outline:hover { background: var(--line); color: white; }
+
+/* Template Selector */
+.template-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-top: 8px; }
+.template-card { padding: 16px; border: 2px solid var(--border); border-radius: var(--radius); cursor: pointer; text-align: center; transition: all .2s; }
+.template-card:hover { border-color: var(--line); background: #f0fdf4; }
+.template-card.active { border-color: var(--line); background: #d1fae5; }
+.template-icon { font-size: 24px; margin-bottom: 8px; }
+.template-name { font-size: 13px; font-weight: 500; }
+
+/* Preview */
+.preview-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid var(--border); }
+.phone-mockup { background: #f9fafb; border-radius: 30px; padding: 50px 20px; border: 10px solid #1a1a2e; box-shadow: 0 4px 24px rgba(0,0,0,0.1); }
+.message-bubble { background: var(--line); color: white; padding: 12px 16px; border-radius: 18px; margin-bottom: 12px; font-size: 14px; line-height: 1.6; word-wrap: break-word; }
+.message-meta { font-size: 11px; color: var(--sub); text-align: right; margin-top: 4px; }
+
+/* Buttons */
+.btn { padding: 12px 24px; border-radius: var(--radius); font-size: 14px; font-weight: 500; cursor: pointer; border: none; font-family: inherit; transition: all .15s; }
+.btn-primary { background: var(--line); color: white; }
+.btn-primary:hover { background: #05a647; }
+.btn-secondary { background: var(--sub); color: white; }
+.btn-block { width: 100%; }
+
+/* History Table */
+.table-wrap { background: white; border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; margin-top: 24px; }
+.table-wrap table { width: 100%; border-collapse: collapse; }
+.table-wrap th { background: #f9fafb; padding: 12px 16px; text-align: left; font-size: 12px; color: var(--sub); font-weight: 600; border-bottom: 1px solid var(--border); }
+.table-wrap td { padding: 14px 16px; font-size: 13px; border-bottom: 1px solid #f3f4f6; }
+.table-wrap tr:last-child td { border-bottom: none; }
+.table-wrap tr:hover td { background: #fafafa; }
+
+.badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+.badge-sent { background: #d1fae5; color: #065f46; }
+.badge-pending { background: #fef3c7; color: #92400e; }
+.badge-failed { background: #fee2e2; color: #991b1b; }
+
+@media (max-width: 1200px) {
+  .content-grid { grid-template-columns: 1fr; }
+  .preview-section { position: static; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h2>LINE 訊息推播</h2>
+  <p>發送課程通知、繳費提醒給學生與家長</p>
+</div>
+
+<div class="stats">
+  <div class="stat-card">
+    <div class="stat-label">本月發送</div>
+    <div class="stat-value" id="monthSent">0</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">今日發送</div>
+    <div class="stat-value" id="todaySent">0</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">成功率</div>
+    <div class="stat-value" id="successRate">100%</div>
+  </div>
+</div>
+
+<div class="content-grid">
+  <!-- Main Form -->
+  <div class="main-section">
+    <form id="messageForm" onsubmit="sendMessage(event)">
+      <div class="form-group">
+        <label class="form-label">訊息範本</label>
+        <div class="template-grid">
+          <div class="template-card active" onclick="selectTemplate('custom')">
+            <div class="template-icon">✏️</div>
+            <div class="template-name">自訂訊息</div>
+          </div>
+          <div class="template-card" onclick="selectTemplate('class')">
+            <div class="template-icon">📚</div>
+            <div class="template-name">上課通知</div>
+          </div>
+          <div class="template-card" onclick="selectTemplate('payment')">
+            <div class="template-icon">💰</div>
+            <div class="template-name">繳費提醒</div>
+          </div>
+          <div class="template-card" onclick="selectTemplate('event')">
+            <div class="template-icon">🎉</div>
+            <div class="template-name">活動通知</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">發送對象</label>
+        <div class="recipient-chips">
+          <div class="chip" onclick="selectRecipient('all')">全部學生</div>
+          <div class="chip outline" onclick="selectRecipient('active')">在學學生</div>
+          <div class="chip outline" onclick="selectRecipient('custom')">指定學生</div>
+        </div>
+        <select class="form-select" id="studentSelect" style="display:none; margin-top:12px;" multiple>
+          <option value="1">張小明</option>
+          <option value="2">李小華</option>
+          <option value="3">王大明</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">訊息主旨</label>
+        <input class="form-input" id="subject" placeholder="例：本週課程提醒" required>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">訊息內容</label>
+        <textarea class="form-textarea" id="content" placeholder="輸入您要發送的訊息..." required oninput="updatePreview()"></textarea>
+        <div style="font-size:12px; color:var(--sub); margin-top:4px;">
+          字數：<span id="charCount">0</span> / 500
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">排程發送（選填）</label>
+        <input class="form-input" type="datetime-local" id="scheduleTime">
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block">立即發送</button>
+    </form>
+
+    <!-- History -->
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>發送時間</th>
+            <th>主旨</th>
+            <th>對象</th>
+            <th>狀態</th>
+            <th>成功/總數</th>
+          </tr>
+        </thead>
+        <tbody id="historyTbody">
+          <tr>
+            <td>2026-02-13 10:30</td>
+            <td>本週課程提醒</td>
+            <td>全部學生</td>
+            <td><span class="badge badge-sent">已發送</span></td>
+            <td>25/25</td>
+          </tr>
+          <tr>
+            <td>2026-02-10 09:00</td>
+            <td>繳費提醒</td>
+            <td>指定學生</td>
+            <td><span class="badge badge-sent">已發送</span></td>
+            <td>12/12</td>
+          </tr>
+          <tr>
+            <td>2026-02-08 14:00</td>
+            <td>活動通知</td>
+            <td>全部學生</td>
+            <td><span class="badge badge-sent">已發送</span></td>
+            <td>30/30</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Preview -->
+  <div class="preview-section">
+    <div class="preview-title">訊息預覽</div>
+    <div class="phone-mockup">
+      <div class="message-bubble" id="previewBubble">
+        <div id="previewSubject" style="font-weight:600; margin-bottom:8px;">訊息主旨</div>
+        <div id="previewContent">訊息內容將顯示在這裡...</div>
+        <div class="message-meta">音樂補習班</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let selectedTemplate = 'custom';
+let selectedRecipient = 'all';
+
+const templates = {
+  custom: { subject: '', content: '' },
+  class: {
+    subject: '本週課程提醒',
+    content: '親愛的家長您好：\n\n本週課程安排如下：\n日期：[日期]\n時間：[時間]\n老師：[老師姓名]\n\n請準時到班上課，謝謝！\n\n音樂補習班 敬上'
+  },
+  payment: {
+    subject: '繳費提醒',
+    content: '親愛的家長您好：\n\n本月學費尚未繳納，提醒您：\n金額：NT$ [金額]\n繳費期限：[日期]\n\n如已繳費請忽略此訊息，謝謝！\n\n音樂補習班 敬上'
+  },
+  event: {
+    subject: '活動通知',
+    content: '親愛的家長您好：\n\n本班將舉辦[活動名稱]：\n時間：[日期時間]\n地點：[地點]\n\n歡迎踴躍參加！\n\n音樂補習班 敬上'
+  }
+};
+
+function selectTemplate(type) {
+  selectedTemplate = type;
+  document.querySelectorAll('.template-card').forEach(card => card.classList.remove('active'));
+  event.target.closest('.template-card').classList.add('active');
+  
+  const template = templates[type];
+  document.getElementById('subject').value = template.subject;
+  document.getElementById('content').value = template.content;
+  updatePreview();
+}
+
+function selectRecipient(type) {
+  selectedRecipient = type;
+  document.querySelectorAll('.recipient-chips .chip').forEach(chip => {
+    chip.classList.remove('outline');
+    chip.classList.add('outline');
+  });
+  event.target.classList.remove('outline');
+  
+  const studentSelect = document.getElementById('studentSelect');
+  studentSelect.style.display = type === 'custom' ? 'block' : 'none';
+}
+
+function updatePreview() {
+  const subject = document.getElementById('subject').value || '訊息主旨';
+  const content = document.getElementById('content').value || '訊息內容將顯示在這裡...';
+  
+  document.getElementById('previewSubject').textContent = subject;
+  document.getElementById('previewContent').textContent = content;
+  document.getElementById('charCount').textContent = content.length;
+}
+
+function sendMessage(e) {
+  e.preventDefault();
+  
+  const subject = document.getElementById('subject').value;
+  const content = document.getElementById('content').value;
+  const scheduleTime = document.getElementById('scheduleTime').value;
+  
+  if (confirm(`確定要發送訊息給「${selectedRecipient === 'all' ? '全部學生' : selectedRecipient === 'active' ? '在學學生' : '指定學生'}」？`)) {
+    // Mock send
+    const now = new Date();
+    const timeStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    
+    const tbody = document.getElementById('historyTbody');
+    const newRow = tbody.insertRow(0);
+    newRow.innerHTML = `
+      <td>${scheduleTime || timeStr}</td>
+      <td>${subject}</td>
+      <td>${selectedRecipient === 'all' ? '全部學生' : selectedRecipient === 'active' ? '在學學生' : '指定學生'}</td>
+      <td><span class="badge ${scheduleTime ? 'badge-pending' : 'badge-sent'}">${scheduleTime ? '排程中' : '已發送'}</span></td>
+      <td>--</td>
+    `;
+    
+    alert(scheduleTime ? '訊息已排程！' : '訊息發送成功！');
+    document.getElementById('messageForm').reset();
+    updatePreview();
+    updateStats();
+  }
+}
+
+function updateStats() {
+  const rows = document.getElementById('historyTbody').rows;
+  const today = new Date().toISOString().split('T')[0];
+  let todayCount = 0;
+  
+  for (let row of rows) {
+    if (row.cells[0].textContent.startsWith(today)) {
+      todayCount++;
+    }
+  }
+  
+  document.getElementById('monthSent').textContent = rows.length;
+  document.getElementById('todaySent').textContent = todayCount;
+}
+
+// Init
+updatePreview();
+updateStats();
+</script>
+
+</body>
+</html>

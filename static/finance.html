@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>財務報表</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --purple: #7c3aed; --purple-light: #ede9fe; --text: #1a1a2e;
+  --sub: #6b7280; --border: #e5e7eb; --bg: #f3f4f6; --white: #fff;
+  --green: #10b981; --red: #ef4444; --blue: #3b82f6; --radius: 10px;
+}
+body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
+
+/* Stats */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.stat-card { background: white; border-radius: var(--radius); padding: 20px; border: 1px solid var(--border); }
+.stat-label { font-size: 13px; color: var(--sub); margin-bottom: 6px; }
+.stat-value { font-size: 28px; font-weight: 700; }
+.stat-value.income { color: var(--green); }
+.stat-value.expense { color: var(--red); }
+.stat-value.net { color: var(--purple); }
+
+/* Tabs */
+.tabs { display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 2px solid var(--border); }
+.tab { padding: 10px 20px; font-size: 14px; font-weight: 500; color: var(--sub); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .2s; }
+.tab.active { color: var(--purple); border-bottom-color: var(--purple); }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+/* Filter */
+.filter-bar { display: flex; gap: 10px; margin-bottom: 18px; align-items: center; flex-wrap: wrap; }
+.filter-select { padding: 8px 14px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; }
+.btn { padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; font-family: inherit; transition: all .15s; }
+.btn-primary { background: var(--purple); color: white; }
+.btn-primary:hover { background: #6d28d9; }
+.btn-success { background: var(--green); color: white; }
+.btn-danger { background: var(--red); color: white; }
+.btn-sm { padding: 4px 12px; font-size: 12px; }
+
+/* Table */
+.table-wrap { background: white; border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; margin-bottom: 20px; }
+.table-wrap table { width: 100%; border-collapse: collapse; }
+.table-wrap th { background: #f9fafb; padding: 12px 16px; text-align: left; font-size: 12px; color: var(--sub); font-weight: 600; border-bottom: 1px solid var(--border); }
+.table-wrap td { padding: 14px 16px; font-size: 13px; border-bottom: 1px solid #f3f4f6; }
+.table-wrap tr:last-child td { border-bottom: none; }
+.table-wrap tr:hover td { background: #fafafa; }
+
+/* Modal */
+.modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+.modal.show { display: flex; }
+.modal-content { background: white; border-radius: 12px; padding: 24px; width: 90%; max-width: 500px; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.modal-title { font-size: 18px; font-weight: 700; }
+.modal-close { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--sub); }
+.modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+
+/* Form */
+.form-group { margin-bottom: 16px; }
+.form-label { display: block; font-size: 13px; font-weight: 500; color: var(--sub); margin-bottom: 6px; }
+.form-input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; font-family: inherit; }
+.form-input:focus { outline: none; border-color: var(--purple); }
+.form-select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; }
+
+.empty { text-align: center; padding: 40px; color: var(--sub); }
+.amount-income { color: var(--green); font-weight: 600; }
+.amount-expense { color: var(--red); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<!-- Summary Stats -->
+<div class="stats">
+  <div class="stat-card">
+    <div class="stat-label">總收入</div>
+    <div class="stat-value income" id="totalIncome">NT$ 0</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">總支出</div>
+    <div class="stat-value expense" id="totalExpense">NT$ 0</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">淨收入</div>
+    <div class="stat-value net" id="netIncome">NT$ 0</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">本月收入</div>
+    <div class="stat-value income" id="monthIncome">NT$ 0</div>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('income')">收入明細</div>
+  <div class="tab" onclick="switchTab('expense')">支出明細</div>
+</div>
+
+<!-- Income Tab -->
+<div class="tab-pane active" id="tab-income">
+  <div class="filter-bar">
+    <select class="filter-select" id="incomeMonth" onchange="filterIncome()">
+      <option value="">全部月份</option>
+    </select>
+    <button class="btn btn-primary" onclick="showAddPaymentModal()">新增收入</button>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>日期</th>
+          <th>學生</th>
+          <th>月份</th>
+          <th>金額</th>
+          <th>付款方式</th>
+          <th>備註</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="incomeTbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Expense Tab -->
+<div class="tab-pane" id="tab-expense">
+  <div class="filter-bar">
+    <select class="filter-select" id="expenseMonth" onchange="filterExpense()">
+      <option value="">全部月份</option>
+    </select>
+    <button class="btn btn-primary" onclick="showAddExpenseModal()">新增支出</button>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>日期</th>
+          <th>分類</th>
+          <th>金額</th>
+          <th>說明</th>
+          <th>備註</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="expenseTbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Payment Modal -->
+<div class="modal" id="paymentModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title">新增收入</div>
+      <button class="modal-close" onclick="closePaymentModal()">&times;</button>
+    </div>
+    <form id="paymentForm" onsubmit="savePayment(event)">
+      <div class="form-group">
+        <label class="form-label">學生 *</label>
+        <select class="form-select" name="student_id" required id="studentSelect"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">金額 (NT$) *</label>
+        <input class="form-input" name="amount" type="number" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">繳費日期 *</label>
+        <input class="form-input" name="payment_date" type="date" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">月份 *</label>
+        <input class="form-input" name="month" type="month" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">付款方式 *</label>
+        <select class="form-select" name="payment_method" required>
+          <option value="cash">現金</option>
+          <option value="transfer">轉帳</option>
+          <option value="credit_card">信用卡</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">備註</label>
+        <textarea class="form-input" name="note" rows="2"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closePaymentModal()">取消</button>
+        <button type="submit" class="btn btn-primary">儲存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Expense Modal -->
+<div class="modal" id="expenseModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title">新增支出</div>
+      <button class="modal-close" onclick="closeExpenseModal()">&times;</button>
+    </div>
+    <form id="expenseForm" onsubmit="saveExpense(event)">
+      <div class="form-group">
+        <label class="form-label">分類 *</label>
+        <select class="form-select" name="category" required>
+          <option value="租金">租金</option>
+          <option value="薪資">薪資</option>
+          <option value="水電費">水電費</option>
+          <option value="教材費">教材費</option>
+          <option value="設備維修">設備維修</option>
+          <option value="行銷費用">行銷費用</option>
+          <option value="其他">其他</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">金額 (NT$) *</label>
+        <input class="form-input" name="amount" type="number" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">支出日期 *</label>
+        <input class="form-input" name="expense_date" type="date" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">說明 *</label>
+        <input class="form-input" name="description" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">備註</label>
+        <textarea class="form-input" name="note" rows="2"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeExpenseModal()">取消</button>
+        <button type="submit" class="btn btn-primary">儲存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+const API = '';
+const pw = sessionStorage.getItem('adminPassword') || '';
+let payments = [];
+let expenses = [];
+let students = [];
+let summary = {};
+
+async function loadData() {
+  await loadStudents();
+  await loadPayments();
+  await loadExpenses();
+  await loadSummary();
+  populateMonthFilters();
+  renderStudentSelect();
+}
+
+async function loadStudents() {
+  const res = await fetch(`${API}/admin/api/students`, { headers: { 'X-Admin-Password': pw } });
+  students = await res.json();
+}
+
+async function loadPayments() {
+  const res = await fetch(`${API}/admin/api/payments`, { headers: { 'X-Admin-Password': pw } });
+  payments = await res.json();
+  renderIncome();
+}
+
+async function loadExpenses() {
+  const res = await fetch(`${API}/admin/api/expenses`, { headers: { 'X-Admin-Password': pw } });
+  expenses = await res.json();
+  renderExpense();
+}
+
+async function loadSummary() {
+  const res = await fetch(`${API}/admin/api/finance/summary`, { headers: { 'X-Admin-Password': pw } });
+  summary = await res.json();
+  renderSummary();
+}
+
+function renderSummary() {
+  document.getElementById('totalIncome').textContent = `NT$ ${summary.total_income?.toLocaleString() || 0}`;
+  document.getElementById('totalExpense').textContent = `NT$ ${summary.total_expense?.toLocaleString() || 0}`;
+  document.getElementById('netIncome').textContent = `NT$ ${summary.net_income?.toLocaleString() || 0}`;
+  document.getElementById('monthIncome').textContent = `NT$ ${summary.month_income?.toLocaleString() || 0}`;
+}
+
+function renderStudentSelect() {
+  const select = document.getElementById('studentSelect');
+  select.innerHTML = '<option value="">請選擇學生</option>' + 
+    students.filter(s => s.is_active).map(s => `<option value="${s.id}">${s.name} (${s.student_id})</option>`).join('');
+}
+
+function populateMonthFilters() {
+  const months = new Set();
+  payments.forEach(p => p.month && months.add(p.month));
+  expenses.forEach(e => {
+    const month = e.expense_date.substring(0, 7);
+    months.add(month);
+  });
+  
+  const sortedMonths = Array.from(months).sort().reverse();
+  const options = sortedMonths.map(m => `<option value="${m}">${m}</option>`).join('');
+  
+  document.getElementById('incomeMonth').innerHTML = '<option value="">全部月份</option>' + options;
+  document.getElementById('expenseMonth').innerHTML = '<option value="">全部月份</option>' + options;
+}
+
+function filterIncome() {
+  renderIncome();
+}
+
+function filterExpense() {
+  renderExpense();
+}
+
+function renderIncome() {
+  const month = document.getElementById('incomeMonth').value;
+  let data = payments;
+  if (month) {
+    data = data.filter(p => p.month === month);
+  }
+
+  const tbody = document.getElementById('incomeTbody');
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty">沒有收入記錄</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = data.map(p => `
+    <tr>
+      <td>${p.payment_date}</td>
+      <td><strong>${p.student_name}</strong></td>
+      <td>${p.month || '-'}</td>
+      <td class="amount-income">NT$ ${p.amount.toLocaleString()}</td>
+      <td>${getPaymentMethodText(p.payment_method)}</td>
+      <td>${p.note || '-'}</td>
+      <td>
+        <button class="btn btn-sm btn-danger" onclick="deletePayment(${p.id})">刪除</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function renderExpense() {
+  const month = document.getElementById('expenseMonth').value;
+  let data = expenses;
+  if (month) {
+    data = data.filter(e => e.expense_date.startsWith(month));
+  }
+
+  const tbody = document.getElementById('expenseTbody');
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty">沒有支出記錄</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = data.map(e => `
+    <tr>
+      <td>${e.expense_date}</td>
+      <td>${e.category}</td>
+      <td class="amount-expense">NT$ ${e.amount.toLocaleString()}</td>
+      <td>${e.description}</td>
+      <td>${e.note || '-'}</td>
+      <td>
+        <button class="btn btn-sm btn-danger" onclick="deleteExpense(${e.id})">刪除</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function getPaymentMethodText(method) {
+  const map = { 'cash': '現金', 'transfer': '轉帳', 'credit_card': '信用卡' };
+  return map[method] || method;
+}
+
+// Payment Modal
+function showAddPaymentModal() {
+  document.getElementById('paymentForm').reset();
+  const today = new Date().toISOString().split('T')[0];
+  const thisMonth = today.substring(0, 7);
+  document.querySelector('[name="payment_date"]').value = today;
+  document.querySelector('[name="month"]').value = thisMonth;
+  document.getElementById('paymentModal').classList.add('show');
+}
+
+async function savePayment(e) {
+  e.preventDefault();
+  const form = e.target;
+  const data = {
+    student_id: parseInt(form.student_id.value),
+    amount: parseInt(form.amount.value),
+    payment_date: form.payment_date.value,
+    month: form.month.value,
+    payment_method: form.payment_method.value,
+    note: form.note.value,
+  };
+
+  const res = await fetch(`${API}/admin/api/payments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Password': pw },
+    body: JSON.stringify(data)
+  });
+
+  if (res.ok) {
+    closePaymentModal();
+    await loadPayments();
+    await loadSummary();
+    alert('收入已新增');
+  } else {
+    alert('操作失敗');
+  }
+}
+
+async function deletePayment(id) {
+  if (!confirm('確定要刪除此收入記錄？')) return;
+  const res = await fetch(`${API}/admin/api/payments/${id}`, {
+    method: 'DELETE',
+    headers: { 'X-Admin-Password': pw }
+  });
+  if (res.ok) {
+    await loadPayments();
+    await loadSummary();
+  }
+}
+
+function closePaymentModal() {
+  document.getElementById('paymentModal').classList.remove('show');
+}
+
+// Expense Modal
+function showAddExpenseModal() {
+  document.getElementById('expenseForm').reset();
+  const today = new Date().toISOString().split('T')[0];
+  document.querySelector('[name="expense_date"]').value = today;
+  document.getElementById('expenseModal').classList.add('show');
+}
+
+async function saveExpense(e) {
+  e.preventDefault();
+  const form = e.target;
+  const data = {
+    category: form.category.value,
+    amount: parseInt(form.amount.value),
+    expense_date: form.expense_date.value,
+    description: form.description.value,
+    note: form.note.value,
+  };
+
+  const res = await fetch(`${API}/admin/api/expenses`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Password': pw },
+    body: JSON.stringify(data)
+  });
+
+  if (res.ok) {
+    closeExpenseModal();
+    await loadExpenses();
+    await loadSummary();
+    alert('支出已新增');
+  } else {
+    alert('操作失敗');
+  }
+}
+
+async function deleteExpense(id) {
+  if (!confirm('確定要刪除此支出記錄？')) return;
+  const res = await fetch(`${API}/admin/api/expenses/${id}`, {
+    method: 'DELETE',
+    headers: { 'X-Admin-Password': pw }
+  });
+  if (res.ok) {
+    await loadExpenses();
+    await loadSummary();
+  }
+}
+
+function closeExpenseModal() {
+  document.getElementById('expenseModal').classList.remove('show');
+}
+
+// Tab Switch
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById(`tab-${tab}`).classList.add('active');
+}
+
+// Init
+loadData();
+</script>
+
+</body>
+</html>

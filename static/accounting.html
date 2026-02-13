@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>會計科目</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --purple: #7c3aed; --purple-light: #ede9fe; --text: #1a1a2e;
+  --sub: #6b7280; --border: #e5e7eb; --bg: #f3f4f6; --white: #fff;
+  --green: #10b981; --red: #ef4444; --radius: 10px;
+}
+body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
+
+.header { margin-bottom: 24px; }
+.header h2 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+.header p { font-size: 14px; color: var(--sub); }
+
+/* Category Sections */
+.category-section { background: white; border-radius: var(--radius); padding: 24px; margin-bottom: 20px; border: 1px solid var(--border); }
+.category-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.category-title { font-size: 18px; font-weight: 600; color: var(--purple); }
+.btn { padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; font-family: inherit; transition: all .15s; }
+.btn-primary { background: var(--purple); color: white; }
+.btn-primary:hover { background: #6d28d9; }
+.btn-sm { padding: 4px 12px; font-size: 12px; }
+.btn-danger { background: var(--red); color: white; }
+
+/* Items */
+.items-grid { display: grid; gap: 12px; }
+.item { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg); border-radius: 8px; border: 1px solid var(--border); }
+.item-name { font-size: 14px; font-weight: 500; }
+.item-desc { font-size: 12px; color: var(--sub); margin-top: 2px; }
+.item-actions { display: flex; gap: 8px; }
+
+.empty { text-align: center; padding: 40px; color: var(--sub); font-size: 14px; }
+
+/* Modal */
+.modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+.modal.show { display: flex; }
+.modal-content { background: white; border-radius: 12px; padding: 24px; width: 90%; max-width: 500px; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.modal-title { font-size: 18px; font-weight: 700; }
+.modal-close { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--sub); }
+
+.form-group { margin-bottom: 16px; }
+.form-label { display: block; font-size: 13px; font-weight: 500; color: var(--sub); margin-bottom: 6px; }
+.form-input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; font-family: inherit; }
+.form-input:focus { outline: none; border-color: var(--purple); }
+.form-select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; }
+.modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+.btn-secondary { background: var(--sub); color: white; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h2>會計科目管理</h2>
+  <p>設定收入與支出的科目分類</p>
+</div>
+
+<!-- Income Categories -->
+<div class="category-section">
+  <div class="category-header">
+    <div class="category-title">收入科目</div>
+    <button class="btn btn-primary" onclick="showAddCategoryModal('income')">新增科目</button>
+  </div>
+  <div class="items-grid" id="incomeCategories">
+    <div class="empty">尚未設定收入科目</div>
+  </div>
+</div>
+
+<!-- Expense Categories -->
+<div class="category-section">
+  <div class="category-header">
+    <div class="category-title">支出科目</div>
+    <button class="btn btn-primary" onclick="showAddCategoryModal('expense')">新增科目</button>
+  </div>
+  <div class="items-grid" id="expenseCategories">
+    <div class="item">
+      <div>
+        <div class="item-name">租金</div>
+        <div class="item-desc">場地租賃費用</div>
+      </div>
+      <div class="item-actions">
+        <button class="btn btn-sm btn-danger" onclick="deleteCategory('expense','租金')">刪除</button>
+      </div>
+    </div>
+    <div class="item">
+      <div>
+        <div class="item-name">薪資</div>
+        <div class="item-desc">教師及員工薪資</div>
+      </div>
+      <div class="item-actions">
+        <button class="btn btn-sm btn-danger" onclick="deleteCategory('expense','薪資')">刪除</button>
+      </div>
+    </div>
+    <div class="item">
+      <div>
+        <div class="item-name">水電費</div>
+        <div class="item-desc">水電瓦斯等公用事業費用</div>
+      </div>
+      <div class="item-actions">
+        <button class="btn btn-sm btn-danger" onclick="deleteCategory('expense','水電費')">刪除</button>
+      </div>
+    </div>
+    <div class="item">
+      <div>
+        <div class="item-name">教材費</div>
+        <div class="item-desc">教學教材與用品</div>
+      </div>
+      <div class="item-actions">
+        <button class="btn btn-sm btn-danger" onclick="deleteCategory('expense','教材費')">刪除</button>
+      </div>
+    </div>
+    <div class="item">
+      <div>
+        <div class="item-name">設備維修</div>
+        <div class="item-desc">樂器及設備維修保養</div>
+      </div>
+      <div class="item-actions">
+        <button class="btn btn-sm btn-danger" onclick="deleteCategory('expense','設備維修')">刪除</button>
+      </div>
+    </div>
+    <div class="item">
+      <div>
+        <div class="item-name">行銷費用</div>
+        <div class="item-desc">廣告宣傳費用</div>
+      </div>
+      <div class="item-actions">
+        <button class="btn btn-sm btn-danger" onclick="deleteCategory('expense','行銷費用')">刪除</button>
+      </div>
+    </div>
+    <div class="item">
+      <div>
+        <div class="item-name">其他</div>
+        <div class="item-desc">其他雜項支出</div>
+      </div>
+      <div class="item-actions">
+        <button class="btn btn-sm btn-danger" onclick="deleteCategory('expense','其他')">刪除</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Category Modal -->
+<div class="modal" id="categoryModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">新增科目</div>
+      <button class="modal-close" onclick="closeCategoryModal()">&times;</button>
+    </div>
+    <form id="categoryForm" onsubmit="saveCategory(event)">
+      <input type="hidden" name="type" id="categoryType">
+      <div class="form-group">
+        <label class="form-label">科目名稱 *</label>
+        <input class="form-input" name="name" required placeholder="例：學費、報名費">
+      </div>
+      <div class="form-group">
+        <label class="form-label">說明</label>
+        <textarea class="form-input" name="description" rows="3" placeholder="科目說明（選填）"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeCategoryModal()">取消</button>
+        <button type="submit" class="btn btn-primary">儲存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+const categories = {
+  income: [
+    { name: '學費', description: '學生每月學費收入' },
+    { name: '報名費', description: '新生報名費用' },
+    { name: '教材費', description: '學生教材費用' }
+  ],
+  expense: [
+    { name: '租金', description: '場地租賃費用' },
+    { name: '薪資', description: '教師及員工薪資' },
+    { name: '水電費', description: '水電瓦斯等公用事業費用' },
+    { name: '教材費', description: '教學教材與用品' },
+    { name: '設備維修', description: '樂器及設備維修保養' },
+    { name: '行銷費用', description: '廣告宣傳費用' },
+    { name: '其他', description: '其他雜項支出' }
+  ]
+};
+
+function renderCategories() {
+  // Income
+  const incomeContainer = document.getElementById('incomeCategories');
+  if (categories.income.length === 0) {
+    incomeContainer.innerHTML = '<div class="empty">尚未設定收入科目</div>';
+  } else {
+    incomeContainer.innerHTML = categories.income.map(cat => `
+      <div class="item">
+        <div>
+          <div class="item-name">${cat.name}</div>
+          ${cat.description ? `<div class="item-desc">${cat.description}</div>` : ''}
+        </div>
+        <div class="item-actions">
+          <button class="btn btn-sm btn-danger" onclick="deleteCategory('income','${cat.name}')">刪除</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // Expense
+  const expenseContainer = document.getElementById('expenseCategories');
+  if (categories.expense.length === 0) {
+    expenseContainer.innerHTML = '<div class="empty">尚未設定支出科目</div>';
+  } else {
+    expenseContainer.innerHTML = categories.expense.map(cat => `
+      <div class="item">
+        <div>
+          <div class="item-name">${cat.name}</div>
+          ${cat.description ? `<div class="item-desc">${cat.description}</div>` : ''}
+        </div>
+        <div class="item-actions">
+          <button class="btn btn-sm btn-danger" onclick="deleteCategory('expense','${cat.name}')">刪除</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  saveToLocalStorage();
+}
+
+function showAddCategoryModal(type) {
+  document.getElementById('categoryForm').reset();
+  document.getElementById('categoryType').value = type;
+  document.getElementById('modalTitle').textContent = type === 'income' ? '新增收入科目' : '新增支出科目';
+  document.getElementById('categoryModal').classList.add('show');
+}
+
+function saveCategory(e) {
+  e.preventDefault();
+  const form = e.target;
+  const type = form.type.value;
+  const name = form.name.value.trim();
+  const description = form.description.value.trim();
+
+  // Check duplicate
+  if (categories[type].find(c => c.name === name)) {
+    alert('此科目名稱已存在');
+    return;
+  }
+
+  categories[type].push({ name, description });
+  renderCategories();
+  closeCategoryModal();
+  alert('科目已新增');
+}
+
+function deleteCategory(type, name) {
+  if (!confirm(`確定要刪除「${name}」科目？`)) return;
+  
+  const index = categories[type].findIndex(c => c.name === name);
+  if (index > -1) {
+    categories[type].splice(index, 1);
+    renderCategories();
+  }
+}
+
+function closeCategoryModal() {
+  document.getElementById('categoryModal').classList.remove('show');
+}
+
+function saveToLocalStorage() {
+  localStorage.setItem('accountingCategories', JSON.stringify(categories));
+}
+
+function loadFromLocalStorage() {
+  const saved = localStorage.getItem('accountingCategories');
+  if (saved) {
+    const data = JSON.parse(saved);
+    categories.income = data.income || categories.income;
+    categories.expense = data.expense || categories.expense;
+  }
+}
+
+// Init
+loadFromLocalStorage();
+renderCategories();
+</script>
+
+</body>
+</html>

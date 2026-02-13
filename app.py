@@ -84,6 +84,95 @@ class Course(db.Model):
         }
 
 
+class Student(db.Model):
+    __tablename__ = 'students'
+    id              = db.Column(db.Integer, primary_key=True)
+    student_id      = db.Column(db.String(20), unique=True, nullable=False)
+    name            = db.Column(db.String(50), nullable=False)
+    contact         = db.Column(db.String(100), nullable=False)
+    email           = db.Column(db.String(100))
+    age             = db.Column(db.Integer)
+    level           = db.Column(db.String(20))
+    instrument      = db.Column(db.String(50))
+    parent_name     = db.Column(db.String(50))
+    parent_contact  = db.Column(db.String(100))
+    address         = db.Column(db.Text)
+    note            = db.Column(db.Text)
+    enrollment_date = db.Column(db.DateTime, default=datetime.now)
+    is_active       = db.Column(db.Boolean, default=True)
+    created_at      = db.Column(db.DateTime, default=datetime.now)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'student_id': self.student_id,
+            'name': self.name,
+            'contact': self.contact,
+            'email': self.email,
+            'age': self.age,
+            'level': self.level,
+            'instrument': self.instrument,
+            'parent_name': self.parent_name,
+            'parent_contact': self.parent_contact,
+            'address': self.address,
+            'note': self.note,
+            'enrollment_date': self.enrollment_date.strftime('%Y-%m-%d') if self.enrollment_date else '',
+            'is_active': self.is_active,
+            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M') if self.created_at else '',
+        }
+
+
+class Payment(db.Model):
+    __tablename__ = 'payments'
+    id              = db.Column(db.Integer, primary_key=True)
+    student_id      = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)
+    amount          = db.Column(db.Integer, nullable=False)
+    payment_date    = db.Column(db.DateTime, default=datetime.now)
+    payment_method  = db.Column(db.String(20))  # cash, transfer, credit_card
+    status          = db.Column(db.String(20), default='paid')  # paid, pending, cancelled
+    month           = db.Column(db.String(7))  # YYYY-MM
+    note            = db.Column(db.Text)
+    created_at      = db.Column(db.DateTime, default=datetime.now)
+
+    student = db.relationship('Student', backref='payments')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'student_id': self.student_id,
+            'student_name': self.student.name if self.student else '',
+            'amount': self.amount,
+            'payment_date': self.payment_date.strftime('%Y-%m-%d') if self.payment_date else '',
+            'payment_method': self.payment_method,
+            'status': self.status,
+            'month': self.month,
+            'note': self.note,
+            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M') if self.created_at else '',
+        }
+
+
+class Expense(db.Model):
+    __tablename__ = 'expenses'
+    id              = db.Column(db.Integer, primary_key=True)
+    category        = db.Column(db.String(50), nullable=False)
+    amount          = db.Column(db.Integer, nullable=False)
+    expense_date    = db.Column(db.DateTime, default=datetime.now)
+    description     = db.Column(db.Text)
+    note            = db.Column(db.Text)
+    created_at      = db.Column(db.DateTime, default=datetime.now)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'category': self.category,
+            'amount': self.amount,
+            'expense_date': self.expense_date.strftime('%Y-%m-%d') if self.expense_date else '',
+            'description': self.description,
+            'note': self.note,
+            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M') if self.created_at else '',
+        }
+
+
 class Booking(db.Model):
     __tablename__ = 'bookings'
     id           = db.Column(db.Integer, primary_key=True)
@@ -149,6 +238,61 @@ def dashboard():
 def booking_admin():
     """預約管理頁面（iframe用）"""
     return send_from_directory('static', 'booking-admin.html')
+
+@app.route('/teacher-mgmt')
+def teacher_mgmt():
+    """師生管理頁面（iframe用）"""
+    return send_from_directory('static', 'teacher-mgmt.html')
+
+@app.route('/finance')
+def finance():
+    """財務報表頁面（iframe用）"""
+    return send_from_directory('static', 'finance.html')
+
+@app.route('/accounting')
+def accounting():
+    """會計科目頁面（iframe用）"""
+    return send_from_directory('static', 'accounting.html')
+
+@app.route('/course-schedule')
+def course_schedule():
+    """課表系統頁面（iframe用）"""
+    return send_from_directory('static', 'course-schedule.html')
+
+@app.route('/ceo-report')
+def ceo_report():
+    """CEO每日報頁面（iframe用）"""
+    return send_from_directory('static', 'ceo-report.html')
+
+@app.route('/line-messages')
+def line_messages():
+    """LINE 訊息推播頁面（iframe用）"""
+    return send_from_directory('static', 'line-messages.html')
+
+@app.route('/line-notifications')
+def line_notifications():
+    """LINE 通知設定頁面（iframe用）"""
+    return send_from_directory('static', 'line-notifications.html')
+
+@app.route('/line-interactive')
+def line_interactive():
+    """LINE 互動功能頁面（iframe用）"""
+    return send_from_directory('static', 'line-interactive.html')
+
+@app.route('/website-design')
+def website_design():
+    """網站設計頁面（iframe用）"""
+    return send_from_directory('static', 'website-design.html')
+
+@app.route('/website-content')
+def website_content():
+    """內容管理頁面（iframe用）"""
+    return send_from_directory('static', 'website-content.html')
+
+@app.route('/online-booking')
+def online_booking():
+    """線上報名頁面（iframe用）"""
+    return send_from_directory('static', 'online-booking.html')
 
 
 # ─────────────────────────────────────────────
@@ -343,6 +487,202 @@ def admin_delete_slot(sid):
     db.session.delete(slot)
     db.session.commit()
     return jsonify({'success': True})
+
+
+# ─────────────────────────────────────────────
+# 學生管理 API
+# ─────────────────────────────────────────────
+
+@app.route('/admin/api/students', methods=['GET'])
+def admin_get_students():
+    check_admin()
+    students = Student.query.order_by(Student.created_at.desc()).all()
+    return jsonify([s.to_dict() for s in students])
+
+
+@app.route('/admin/api/students', methods=['POST'])
+def admin_add_student():
+    check_admin()
+    data = request.get_json()
+    
+    # 產生學生編號
+    student_count = Student.query.count()
+    student_id = 'S' + datetime.now().strftime('%Y%m') + str(student_count + 1001)
+    
+    student = Student(
+        student_id=student_id,
+        name=data['name'],
+        contact=data.get('contact', ''),
+        email=data.get('email', ''),
+        age=data.get('age'),
+        level=data.get('level', ''),
+        instrument=data.get('instrument', ''),
+        parent_name=data.get('parent_name', ''),
+        parent_contact=data.get('parent_contact', ''),
+        address=data.get('address', ''),
+        note=data.get('note', ''),
+        enrollment_date=datetime.now(),
+        is_active=True,
+    )
+    db.session.add(student)
+    db.session.commit()
+    return jsonify(student.to_dict()), 201
+
+
+@app.route('/admin/api/students/<int:sid>', methods=['PUT'])
+def admin_update_student(sid):
+    check_admin()
+    student = Student.query.get_or_404(sid)
+    data = request.get_json()
+    
+    student.name = data.get('name', student.name)
+    student.contact = data.get('contact', student.contact)
+    student.email = data.get('email', student.email)
+    student.age = data.get('age', student.age)
+    student.level = data.get('level', student.level)
+    student.instrument = data.get('instrument', student.instrument)
+    student.parent_name = data.get('parent_name', student.parent_name)
+    student.parent_contact = data.get('parent_contact', student.parent_contact)
+    student.address = data.get('address', student.address)
+    student.note = data.get('note', student.note)
+    
+    db.session.commit()
+    return jsonify(student.to_dict())
+
+
+@app.route('/admin/api/students/<int:sid>', methods=['DELETE'])
+def admin_delete_student(sid):
+    check_admin()
+    student = Student.query.get_or_404(sid)
+    student.is_active = False
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+# ─────────────────────────────────────────────
+# 繳費管理 API
+# ─────────────────────────────────────────────
+
+@app.route('/admin/api/payments', methods=['GET'])
+def admin_get_payments():
+    check_admin()
+    payments = Payment.query.order_by(Payment.payment_date.desc()).all()
+    return jsonify([p.to_dict() for p in payments])
+
+
+@app.route('/admin/api/payments', methods=['POST'])
+def admin_add_payment():
+    check_admin()
+    data = request.get_json()
+    
+    payment = Payment(
+        student_id=data['student_id'],
+        amount=data['amount'],
+        payment_date=datetime.strptime(data['payment_date'], '%Y-%m-%d') if data.get('payment_date') else datetime.now(),
+        payment_method=data.get('payment_method', 'cash'),
+        status='paid',
+        month=data.get('month', ''),
+        note=data.get('note', ''),
+    )
+    db.session.add(payment)
+    db.session.commit()
+    return jsonify(payment.to_dict()), 201
+
+
+@app.route('/admin/api/payments/<int:pid>', methods=['DELETE'])
+def admin_delete_payment(pid):
+    check_admin()
+    payment = Payment.query.get_or_404(pid)
+    db.session.delete(payment)
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+# ─────────────────────────────────────────────
+# 支出管理 API
+# ─────────────────────────────────────────────
+
+@app.route('/admin/api/expenses', methods=['GET'])
+def admin_get_expenses():
+    check_admin()
+    expenses = Expense.query.order_by(Expense.expense_date.desc()).all()
+    return jsonify([e.to_dict() for e in expenses])
+
+
+@app.route('/admin/api/expenses', methods=['POST'])
+def admin_add_expense():
+    check_admin()
+    data = request.get_json()
+    
+    expense = Expense(
+        category=data['category'],
+        amount=data['amount'],
+        expense_date=datetime.strptime(data['expense_date'], '%Y-%m-%d') if data.get('expense_date') else datetime.now(),
+        description=data.get('description', ''),
+        note=data.get('note', ''),
+    )
+    db.session.add(expense)
+    db.session.commit()
+    return jsonify(expense.to_dict()), 201
+
+
+@app.route('/admin/api/expenses/<int:eid>', methods=['DELETE'])
+def admin_delete_expense(eid):
+    check_admin()
+    expense = Expense.query.get_or_404(eid)
+    db.session.delete(expense)
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+# ─────────────────────────────────────────────
+# 財務報表 API
+# ─────────────────────────────────────────────
+
+@app.route('/admin/api/finance/summary', methods=['GET'])
+def admin_get_finance_summary():
+    check_admin()
+    month = request.args.get('month')  # YYYY-MM
+    
+    # 收入統計
+    payments_query = Payment.query.filter_by(status='paid')
+    if month:
+        payments_query = payments_query.filter(Payment.month == month)
+    
+    total_income = db.session.query(db.func.sum(Payment.amount)).filter(
+        Payment.status == 'paid'
+    ).scalar() or 0
+    
+    # 支出統計
+    expenses_query = Expense.query
+    if month:
+        start_date = month + '-01'
+        end_date = month + '-31'
+        expenses_query = expenses_query.filter(
+            Expense.expense_date >= start_date,
+            Expense.expense_date <= end_date
+        )
+    
+    total_expense = db.session.query(db.func.sum(Expense.amount)).scalar() or 0
+    
+    # 學生統計
+    active_students = Student.query.filter_by(is_active=True).count()
+    
+    # 本月收入
+    current_month = datetime.now().strftime('%Y-%m')
+    month_income = db.session.query(db.func.sum(Payment.amount)).filter(
+        Payment.month == current_month,
+        Payment.status == 'paid'
+    ).scalar() or 0
+    
+    return jsonify({
+        'total_income': total_income,
+        'total_expense': total_expense,
+        'net_income': total_income - total_expense,
+        'active_students': active_students,
+        'month_income': month_income,
+        'current_month': current_month,
+    })
 
 
 # ─────────────────────────────────────────────

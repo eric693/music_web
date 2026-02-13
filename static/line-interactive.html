@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LINE 互動功能</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --purple: #7c3aed; --purple-light: #ede9fe; --text: #1a1a2e;
+  --sub: #6b7280; --border: #e5e7eb; --bg: #f3f4f6; --white: #fff;
+  --green: #10b981; --red: #ef4444; --line: #06c755; --radius: 10px;
+}
+body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
+
+.header { margin-bottom: 24px; }
+.header h2 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+.header p { font-size: 14px; color: var(--sub); }
+
+/* Tabs */
+.tabs { display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 2px solid var(--border); }
+.tab { padding: 10px 20px; font-size: 14px; font-weight: 500; color: var(--sub); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .2s; }
+.tab.active { color: var(--line); border-bottom-color: var(--line); }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+/* Auto Reply */
+.reply-section { background: white; border-radius: var(--radius); padding: 24px; border: 1px solid var(--border); margin-bottom: 20px; }
+.section-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid var(--border); }
+
+.reply-list { display: grid; gap: 12px; }
+.reply-item { background: var(--bg); border-radius: var(--radius); padding: 16px; border: 1px solid var(--border); }
+.reply-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.reply-keyword { font-size: 14px; font-weight: 600; color: var(--line); }
+.reply-content { font-size: 13px; color: var(--sub); line-height: 1.6; }
+
+/* Buttons */
+.btn { padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; font-family: inherit; transition: all .15s; }
+.btn-primary { background: var(--line); color: white; }
+.btn-primary:hover { background: #05a647; }
+.btn-sm { padding: 4px 12px; font-size: 12px; }
+.btn-danger { background: var(--red); color: white; }
+.btn-secondary { background: var(--sub); color: white; }
+
+/* Modal */
+.modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+.modal.show { display: flex; }
+.modal-content { background: white; border-radius: 12px; padding: 24px; width: 90%; max-width: 500px; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.modal-title { font-size: 18px; font-weight: 700; }
+.modal-close { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--sub); }
+
+.form-group { margin-bottom: 16px; }
+.form-label { display: block; font-size: 13px; font-weight: 500; color: var(--sub); margin-bottom: 6px; }
+.form-input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; font-family: inherit; }
+.form-input:focus { outline: none; border-color: var(--line); }
+.form-textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; font-family: inherit; min-height: 100px; resize: vertical; }
+.modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+
+/* Quick Buttons */
+.button-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.quick-button { background: white; border: 2px solid var(--line); border-radius: var(--radius); padding: 16px; text-align: center; cursor: pointer; transition: all .2s; }
+.quick-button:hover { background: #f0fdf4; }
+.button-label { font-size: 14px; font-weight: 600; color: var(--line); margin-bottom: 4px; }
+.button-action { font-size: 12px; color: var(--sub); }
+
+/* Survey */
+.survey-card { background: white; border-radius: var(--radius); padding: 24px; border: 1px solid var(--border); margin-bottom: 16px; }
+.survey-question { font-size: 16px; font-weight: 600; margin-bottom: 12px; }
+.survey-options { display: grid; gap: 8px; }
+.survey-option { padding: 12px; background: var(--bg); border-radius: 8px; border: 1px solid var(--border); }
+.survey-stats { display: flex; align-items: center; gap: 12px; }
+.survey-bar { flex: 1; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+.survey-bar-fill { height: 100%; background: var(--line); transition: width .3s; }
+.survey-count { font-size: 12px; color: var(--sub); min-width: 40px; text-align: right; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h2>LINE 互動功能</h2>
+  <p>設定自動回覆、快速按鈕與問卷調查</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('auto-reply')">自動回覆</div>
+  <div class="tab" onclick="switchTab('quick-buttons')">快速按鈕</div>
+  <div class="tab" onclick="switchTab('survey')">問卷調查</div>
+</div>
+
+<!-- Auto Reply Tab -->
+<div class="tab-pane active" id="tab-auto-reply">
+  <div class="reply-section">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+      <div class="section-title" style="margin:0; padding:0; border:none;">關鍵字自動回覆</div>
+      <button class="btn btn-primary" onclick="showAddReplyModal()">新增回覆</button>
+    </div>
+
+    <div class="reply-list" id="replyList">
+      <div class="reply-item">
+        <div class="reply-header">
+          <div class="reply-keyword">課程</div>
+          <button class="btn btn-sm btn-danger" onclick="deleteReply(0)">刪除</button>
+        </div>
+        <div class="reply-content">
+          您好！我們提供鋼琴、吉他、小提琴等多種音樂課程。<br>
+          想了解詳細課程資訊，請點選下方選單或來電洽詢。<br>
+          電話：02-1234-5678
+        </div>
+      </div>
+
+      <div class="reply-item">
+        <div class="reply-header">
+          <div class="reply-keyword">收費</div>
+          <button class="btn btn-sm btn-danger" onclick="deleteReply(1)">刪除</button>
+        </div>
+        <div class="reply-content">
+          課程收費依據不同樂器與課程內容而定：<br>
+          • 鋼琴課程：NT$ 1,200 / 堂<br>
+          • 吉他課程：NT$ 1,000 / 堂<br>
+          • 小提琴課程：NT$ 1,500 / 堂<br>
+          歡迎預約體驗課程！
+        </div>
+      </div>
+
+      <div class="reply-item">
+        <div class="reply-header">
+          <div class="reply-keyword">地址</div>
+          <button class="btn btn-sm btn-danger" onclick="deleteReply(2)">刪除</button>
+        </div>
+        <div class="reply-content">
+          我們的地址是：台北市中正區音樂街123號<br>
+          營業時間：週一至週日 09:00-21:00<br>
+          歡迎來訪！
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Buttons Tab -->
+<div class="tab-pane" id="tab-quick-buttons">
+  <div class="reply-section">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+      <div class="section-title" style="margin:0; padding:0; border:none;">快速回覆按鈕</div>
+      <button class="btn btn-primary" onclick="showAddButtonModal()">新增按鈕</button>
+    </div>
+
+    <div class="button-grid" id="buttonGrid">
+      <div class="quick-button">
+        <div class="button-label">查詢課表</div>
+        <div class="button-action">顯示本週課程安排</div>
+      </div>
+      <div class="quick-button">
+        <div class="button-label">繳費查詢</div>
+        <div class="button-action">查看繳費記錄</div>
+      </div>
+      <div class="quick-button">
+        <div class="button-label">預約體驗</div>
+        <div class="button-action">預約免費體驗課程</div>
+      </div>
+      <div class="quick-button">
+        <div class="button-label">聯絡我們</div>
+        <div class="button-action">取得聯絡資訊</div>
+      </div>
+      <div class="quick-button">
+        <div class="button-label">最新消息</div>
+        <div class="button-action">查看活動與公告</div>
+      </div>
+      <div class="quick-button">
+        <div class="button-label">常見問題</div>
+        <div class="button-action">FAQ 快速解答</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Survey Tab -->
+<div class="tab-pane" id="tab-survey">
+  <div class="reply-section">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+      <div class="section-title" style="margin:0; padding:0; border:none;">問卷調查</div>
+      <button class="btn btn-primary" onclick="alert('問卷建立功能')">建立問卷</button>
+    </div>
+
+    <div class="survey-card">
+      <div class="survey-question">您對我們的教學服務滿意嗎？</div>
+      <div class="survey-options">
+        <div class="survey-option">
+          <div style="margin-bottom:8px;">非常滿意</div>
+          <div class="survey-stats">
+            <div class="survey-bar">
+              <div class="survey-bar-fill" style="width:65%"></div>
+            </div>
+            <div class="survey-count">65%</div>
+          </div>
+        </div>
+        <div class="survey-option">
+          <div style="margin-bottom:8px;">滿意</div>
+          <div class="survey-stats">
+            <div class="survey-bar">
+              <div class="survey-bar-fill" style="width:25%"></div>
+            </div>
+            <div class="survey-count">25%</div>
+          </div>
+        </div>
+        <div class="survey-option">
+          <div style="margin-bottom:8px;">普通</div>
+          <div class="survey-stats">
+            <div class="survey-bar">
+              <div class="survey-bar-fill" style="width:8%"></div>
+            </div>
+            <div class="survey-count">8%</div>
+          </div>
+        </div>
+        <div class="survey-option">
+          <div style="margin-bottom:8px;">不滿意</div>
+          <div class="survey-stats">
+            <div class="survey-bar">
+              <div class="survey-bar-fill" style="width:2%"></div>
+            </div>
+            <div class="survey-count">2%</div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--border); font-size:13px; color:var(--sub);">
+        總回覆數：120 人
+      </div>
+    </div>
+
+    <div class="survey-card">
+      <div class="survey-question">您希望增加哪些課程？</div>
+      <div class="survey-options">
+        <div class="survey-option">
+          <div style="margin-bottom:8px;">爵士鼓</div>
+          <div class="survey-stats">
+            <div class="survey-bar">
+              <div class="survey-bar-fill" style="width:45%"></div>
+            </div>
+            <div class="survey-count">45%</div>
+          </div>
+        </div>
+        <div class="survey-option">
+          <div style="margin-bottom:8px;">長笛</div>
+          <div class="survey-stats">
+            <div class="survey-bar">
+              <div class="survey-bar-fill" style="width:30%"></div>
+            </div>
+            <div class="survey-count">30%</div>
+          </div>
+        </div>
+        <div class="survey-option">
+          <div style="margin-bottom:8px;">薩克斯風</div>
+          <div class="survey-stats">
+            <div class="survey-bar">
+              <div class="survey-bar-fill" style="width:25%"></div>
+            </div>
+            <div class="survey-count">25%</div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--border); font-size:13px; color:var(--sub);">
+        總回覆數：95 人
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Reply Modal -->
+<div class="modal" id="replyModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title">新增自動回覆</div>
+      <button class="modal-close" onclick="closeReplyModal()">&times;</button>
+    </div>
+    <form id="replyForm" onsubmit="saveReply(event)">
+      <div class="form-group">
+        <label class="form-label">關鍵字 *</label>
+        <input class="form-input" name="keyword" required placeholder="例：課程、收費">
+      </div>
+      <div class="form-group">
+        <label class="form-label">回覆內容 *</label>
+        <textarea class="form-textarea" name="content" required placeholder="輸入自動回覆的訊息內容"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeReplyModal()">取消</button>
+        <button type="submit" class="btn btn-primary">儲存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Add Button Modal -->
+<div class="modal" id="buttonModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title">新增快速按鈕</div>
+      <button class="modal-close" onclick="closeButtonModal()">&times;</button>
+    </div>
+    <form id="buttonForm" onsubmit="saveButton(event)">
+      <div class="form-group">
+        <label class="form-label">按鈕文字 *</label>
+        <input class="form-input" name="label" required placeholder="例：查詢課表">
+      </div>
+      <div class="form-group">
+        <label class="form-label">動作說明 *</label>
+        <input class="form-input" name="action" required placeholder="例：顯示本週課程安排">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeButtonModal()">取消</button>
+        <button type="submit" class="btn btn-primary">儲存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById(`tab-${tab}`).classList.add('active');
+}
+
+// Auto Reply
+function showAddReplyModal() {
+  document.getElementById('replyForm').reset();
+  document.getElementById('replyModal').classList.add('show');
+}
+
+function saveReply(e) {
+  e.preventDefault();
+  const form = e.target;
+  const keyword = form.keyword.value;
+  const content = form.content.value;
+
+  const replyList = document.getElementById('replyList');
+  const newReply = document.createElement('div');
+  newReply.className = 'reply-item';
+  newReply.innerHTML = `
+    <div class="reply-header">
+      <div class="reply-keyword">${keyword}</div>
+      <button class="btn btn-sm btn-danger" onclick="this.closest('.reply-item').remove()">刪除</button>
+    </div>
+    <div class="reply-content">${content.replace(/\n/g, '<br>')}</div>
+  `;
+  replyList.appendChild(newReply);
+
+  closeReplyModal();
+  alert('自動回覆已新增！');
+}
+
+function deleteReply(index) {
+  if (confirm('確定要刪除此自動回覆？')) {
+    alert('已刪除');
+  }
+}
+
+function closeReplyModal() {
+  document.getElementById('replyModal').classList.remove('show');
+}
+
+// Quick Button
+function showAddButtonModal() {
+  document.getElementById('buttonForm').reset();
+  document.getElementById('buttonModal').classList.add('show');
+}
+
+function saveButton(e) {
+  e.preventDefault();
+  const form = e.target;
+  const label = form.label.value;
+  const action = form.action.value;
+
+  const buttonGrid = document.getElementById('buttonGrid');
+  const newButton = document.createElement('div');
+  newButton.className = 'quick-button';
+  newButton.innerHTML = `
+    <div class="button-label">${label}</div>
+    <div class="button-action">${action}</div>
+  `;
+  buttonGrid.appendChild(newButton);
+
+  closeButtonModal();
+  alert('快速按鈕已新增！');
+}
+
+function closeButtonModal() {
+  document.getElementById('buttonModal').classList.remove('show');
+}
+</script>
+
+</body>
+</html>
