@@ -474,8 +474,14 @@ async function loadTeachers() {
 async function loadShifts() {
   try {
     const res = await fetch(`${API}/admin/api/shifts`, { headers: { 'X-Admin-Password': pw } });
-    shifts = await res.json();
+    if (res.ok) {
+      shifts = await res.json();
+    } else {
+      console.log('Shifts API not ready yet');
+      shifts = [];
+    }
   } catch (e) {
+    console.log('Error loading shifts:', e);
     shifts = [];
   }
 }
@@ -483,8 +489,14 @@ async function loadShifts() {
 async function loadSubstitutes() {
   try {
     const res = await fetch(`${API}/admin/api/substitutes`, { headers: { 'X-Admin-Password': pw } });
-    substitutes = await res.json();
+    if (res.ok) {
+      substitutes = await res.json();
+    } else {
+      console.log('Substitutes API not ready yet');
+      substitutes = [];
+    }
   } catch (e) {
+    console.log('Error loading substitutes:', e);
     substitutes = [];
   }
 }
@@ -492,8 +504,14 @@ async function loadSubstitutes() {
 async function loadLeaves() {
   try {
     const res = await fetch(`${API}/admin/api/leaves`, { headers: { 'X-Admin-Password': pw } });
-    leaves = await res.json();
+    if (res.ok) {
+      leaves = await res.json();
+    } else {
+      console.log('Leaves API not ready yet');
+      leaves = [];
+    }
   } catch (e) {
+    console.log('Error loading leaves:', e);
     leaves = [];
   }
 }
