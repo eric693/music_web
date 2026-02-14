@@ -1519,13 +1519,33 @@ def seed():
 
 
 # ─────────────────────────────────────────────
+# 應用程式初始化（適用於 Render/Production）
+# ─────────────────────────────────────────────
+
+# 確保資料表存在（對於 Render 等使用 gunicorn 的環境很重要）
+with app.app_context():
+    try:
+        db.create_all()
+        print('✓ 資料庫初始化完成')
+        # 建立範例資料（如果需要）
+        if Teacher.query.count() == 0:
+            seed()
+            print('✓ 範例資料建立完成')
+    except Exception as e:
+        print(f'⚠ 資料庫初始化錯誤: {e}')
+
+
+# ─────────────────────────────────────────────
 # 啟動
 # ─────────────────────────────────────────────
 
 if __name__ == '__main__':
     os.makedirs('static', exist_ok=True)
     with app.app_context():
+        # 建立所有資料表（包括新增的）
+        # 這個指令只會建立不存在的資料表，不會影響已存在的資料表
         db.create_all()
+        print('✓ 資料庫已初始化（所有資料表已建立）')
         seed()
     print('\n  學生預約頁面：http://localhost:5000')
     print('  管理後台登入：http://localhost:5000/admin')
