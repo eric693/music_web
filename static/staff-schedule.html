@@ -743,26 +743,60 @@ function closeShiftModal() {
 async function saveShift(e) {
   e.preventDefault();
   const form = e.target;
+  
+  // 驗證資料
+  if (!form.teacher_id.value) {
+    alert('請選擇教師');
+    return;
+  }
+  if (!form.date.value) {
+    alert('請選擇日期');
+    return;
+  }
+  if (!form.start_time.value || !form.end_time.value) {
+    alert('請填寫開始和結束時間');
+    return;
+  }
+  
   const data = {
     teacher_id: parseInt(form.teacher_id.value),
     date: form.date.value,
     start_time: form.start_time.value,
     end_time: form.end_time.value,
-    course: form.course.value
+    course: form.course.value || ''
   };
   
-  const res = await fetch(`${API}/admin/api/shifts`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Admin-Password': pw },
-    body: JSON.stringify(data)
-  });
+  console.log('Saving shift:', data);
   
-  if (res.ok) {
-    await loadShifts();
-    renderSchedule();
-    updateStats();
-    closeShiftModal();
-    alert('排班已新增');
+  try {
+    const res = await fetch(`${API}/admin/api/shifts`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json', 
+        'X-Admin-Password': pw 
+      },
+      body: JSON.stringify(data)
+    });
+    
+    console.log('Response status:', res.status);
+    
+    if (res.ok) {
+      const result = await res.json();
+      console.log('Shift created:', result);
+      
+      await loadShifts();
+      renderSchedule();
+      updateStats();
+      closeShiftModal();
+      alert('排班已新增！');
+    } else {
+      const error = await res.text();
+      console.error('Error response:', error);
+      alert('新增排班失敗：' + (error || '請檢查網路連線'));
+    }
+  } catch (error) {
+    console.error('Error saving shift:', error);
+    alert('新增排班時發生錯誤：' + error.message);
   }
 }
 
@@ -785,6 +819,12 @@ function closeSubstituteModal() {
 async function saveSubstitute(e) {
   e.preventDefault();
   const form = e.target;
+  
+  if (!form.original_teacher_id.value || !form.substitute_teacher_id.value) {
+    alert('請選擇教師');
+    return;
+  }
+  
   const data = {
     original_teacher_id: parseInt(form.original_teacher_id.value),
     substitute_teacher_id: parseInt(form.substitute_teacher_id.value),
@@ -794,18 +834,29 @@ async function saveSubstitute(e) {
     status: 'pending'
   };
   
-  const res = await fetch(`${API}/admin/api/substitutes`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Admin-Password': pw },
-    body: JSON.stringify(data)
-  });
-  
-  if (res.ok) {
-    await loadSubstitutes();
-    renderSubstitutes();
-    updateStats();
-    closeSubstituteModal();
-    alert('代課申請已提交');
+  try {
+    const res = await fetch(`${API}/admin/api/substitutes`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json', 
+        'X-Admin-Password': pw 
+      },
+      body: JSON.stringify(data)
+    });
+    
+    if (res.ok) {
+      await loadSubstitutes();
+      renderSubstitutes();
+      updateStats();
+      closeSubstituteModal();
+      alert('代課申請已提交！');
+    } else {
+      const error = await res.text();
+      alert('提交失敗：' + error);
+    }
+  } catch (error) {
+    console.error('Error saving substitute:', error);
+    alert('提交代課申請時發生錯誤：' + error.message);
   }
 }
 
@@ -821,9 +872,20 @@ function closeLeaveModal() {
 async function saveLeave(e) {
   e.preventDefault();
   const form = e.target;
+  
+  if (!form.teacher_id.value) {
+    alert('請選擇教師');
+    return;
+  }
+  
   const start = new Date(form.start_date.value);
   const end = new Date(form.end_date.value);
   const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+  
+  if (days < 1) {
+    alert('結束日期不能早於開始日期');
+    return;
+  }
   
   const data = {
     teacher_id: parseInt(form.teacher_id.value),
@@ -835,18 +897,29 @@ async function saveLeave(e) {
     status: 'pending'
   };
   
-  const res = await fetch(`${API}/admin/api/leaves`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Admin-Password': pw },
-    body: JSON.stringify(data)
-  });
-  
-  if (res.ok) {
-    await loadLeaves();
-    renderLeaves();
-    updateStats();
-    closeLeaveModal();
-    alert('請假申請已提交');
+  try {
+    const res = await fetch(`${API}/admin/api/leaves`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json', 
+        'X-Admin-Password': pw 
+      },
+      body: JSON.stringify(data)
+    });
+    
+    if (res.ok) {
+      await loadLeaves();
+      renderLeaves();
+      updateStats();
+      closeLeaveModal();
+      alert('請假申請已提交！');
+    } else {
+      const error = await res.text();
+      alert('提交失敗：' + error);
+    }
+  } catch (error) {
+    console.error('Error saving leave:', error);
+    alert('提交請假申請時發生錯誤：' + error.message);
   }
 }
 
