@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>排班管理系統</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --purple: #7c3aed; --purple-light: #ede9fe; --text: #1a1a2e;
+  --sub: #6b7280; --border: #e5e7eb; --bg: #f3f4f6; --white: #fff;
+  --green: #10b981; --red: #ef4444; --blue: #3b82f6; --orange: #f59e0b;
+  --yellow: #fbbf24; --radius: 10px;
+}
+body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
+
+.header { margin-bottom: 24px; }
+.header h2 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+.header p { font-size: 14px; color: var(--sub); }
+
+/* Tabs */
+.tabs { display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 2px solid var(--border); }
+.tab { padding: 10px 20px; font-size: 14px; font-weight: 500; color: var(--sub); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .2s; }
+.tab.active { color: var(--purple); border-bottom-color: var(--purple); }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+/* Stats */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.stat-card { background: white; border-radius: var(--radius); padding: 20px; border: 1px solid var(--border); }
+.stat-label { font-size: 13px; color: var(--sub); margin-bottom: 6px; }
+.stat-value { font-size: 28px; font-weight: 700; }
+.stat-value.purple { color: var(--purple); }
+.stat-value.green { color: var(--green); }
+.stat-value.orange { color: var(--orange); }
+.stat-value.red { color: var(--red); }
+
+/* Schedule Grid */
+.schedule-controls { background: white; border-radius: var(--radius); padding: 20px; border: 1px solid var(--border); margin-bottom: 20px; }
+.controls-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.week-nav { display: flex; gap: 8px; align-items: center; }
+.week-nav button { padding: 8px 16px; border: 1px solid var(--border); border-radius: var(--radius); background: white; cursor: pointer; font-size: 14px; transition: all .2s; }
+.week-nav button:hover { background: var(--bg); }
+.week-text { font-size: 16px; font-weight: 600; min-width: 200px; text-align: center; }
+
+.schedule-grid { background: white; border-radius: var(--radius); border: 1px solid var(--border); overflow-x: auto; margin-bottom: 20px; }
+.schedule-table { width: 100%; border-collapse: collapse; min-width: 1000px; }
+.schedule-table th { background: #f9fafb; padding: 14px 12px; text-align: center; font-size: 13px; color: var(--sub); font-weight: 600; border-bottom: 2px solid var(--border); border-right: 1px solid var(--border); }
+.schedule-table th:last-child { border-right: none; }
+.schedule-table th.teacher-col { text-align: left; background: white; position: sticky; left: 0; z-index: 10; }
+.schedule-table td { padding: 8px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); text-align: center; min-height: 80px; position: relative; }
+.schedule-table td:last-child { border-right: none; }
+.schedule-table td.teacher-col { text-align: left; font-weight: 600; background: white; position: sticky; left: 0; z-index: 5; }
+.schedule-table tr:hover td { background: #fafafa; }
+.schedule-table tr:hover td.teacher-col { background: #f9fafb; }
+
+.time-slot { background: var(--purple-light); border: 2px solid var(--purple); border-radius: 6px; padding: 6px; font-size: 12px; cursor: pointer; margin: 2px; transition: all .2s; }
+.time-slot:hover { background: var(--purple); color: white; }
+.time-slot.substitute { background: #fef3c7; border-color: var(--yellow); }
+.time-slot.leave { background: #fee2e2; border-color: var(--red); }
+.slot-time { font-weight: 600; display: block; }
+.slot-info { font-size: 11px; color: var(--sub); margin-top: 2px; }
+
+.add-slot-btn { width: 100%; padding: 8px; border: 1px dashed var(--border); border-radius: 6px; background: transparent; color: var(--sub); cursor: pointer; font-size: 12px; transition: all .2s; }
+.add-slot-btn:hover { border-color: var(--purple); color: var(--purple); background: var(--purple-light); }
+
+/* Buttons */
+.btn { padding: 10px 20px; border-radius: var(--radius); font-size: 14px; font-weight: 500; cursor: pointer; border: none; font-family: inherit; transition: all .15s; }
+.btn-primary { background: var(--purple); color: white; }
+.btn-primary:hover { background: #6d28d9; }
+.btn-success { background: var(--green); color: white; }
+.btn-danger { background: var(--red); color: white; }
+.btn-sm { padding: 6px 14px; font-size: 13px; }
+
+/* Tables */
+.table-wrap { background: white; border-radius: var(--radius); border: 1px solid var(--border); overflow-x: auto; margin-bottom: 20px; }
+.table-wrap table { width: 100%; border-collapse: collapse; }
+.table-wrap th { background: #f9fafb; padding: 12px 16px; text-align: left; font-size: 12px; color: var(--sub); font-weight: 600; border-bottom: 1px solid var(--border); }
+.table-wrap td { padding: 14px 16px; font-size: 13px; border-bottom: 1px solid #f3f4f6; }
+.table-wrap tr:last-child td { border-bottom: none; }
+.table-wrap tr:hover td { background: #fafafa; }
+
+/* Badge */
+.badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+.badge-pending { background: #fef3c7; color: #92400e; }
+.badge-approved { background: #d1fae5; color: #065f46; }
+.badge-rejected { background: #fee2e2; color: #991b1b; }
+.badge-completed { background: #dbeafe; color: #1e40af; }
+
+/* Modal */
+.modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+.modal.show { display: flex; }
+.modal-content { background: white; border-radius: 12px; padding: 24px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.modal-title { font-size: 18px; font-weight: 700; }
+.modal-close { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--sub); }
+
+.form-group { margin-bottom: 16px; }
+.form-label { display: block; font-size: 13px; font-weight: 500; color: var(--sub); margin-bottom: 6px; }
+.form-input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; font-family: inherit; }
+.form-input:focus { outline: none; border-color: var(--purple); }
+.form-select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; }
+.form-textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; font-family: inherit; min-height: 80px; resize: vertical; }
+.modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+
+.filter-bar { display: flex; gap: 10px; margin-bottom: 18px; align-items: center; flex-wrap: wrap; }
+.filter-select { padding: 8px 14px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; }
+
+.empty { text-align: center; padding: 40px; color: var(--sub); }
+
+@media (max-width: 768px) {
+  .controls-row { flex-direction: column; align-items: stretch; }
+  .week-text { min-width: auto; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h2>排班管理系統</h2>
+  <p>教師排班、代課與請假管理</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('schedule')">排班表</div>
+  <div class="tab" onclick="switchTab('substitute')">代課申請</div>
+  <div class="tab" onclick="switchTab('leave')">請假管理</div>
+  <div class="tab" onclick="switchTab('hours')">工時統計</div>
+  <div class="tab" onclick="switchTab('salary')">薪資計算</div>
+</div>
+
+<!-- Schedule Tab -->
+<div class="tab-pane active" id="tab-schedule">
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-label">本週排班</div>
+      <div class="stat-value purple" id="weekShifts">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">本週代課</div>
+      <div class="stat-value orange" id="weekSubstitutes">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">待處理請假</div>
+      <div class="stat-value red" id="pendingLeaves">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">在職教師</div>
+      <div class="stat-value green" id="activeTeachers">0</div>
+    </div>
+  </div>
+
+  <div class="schedule-controls">
+    <div class="controls-row">
+      <div class="week-nav">
+        <button onclick="previousWeek()">上週</button>
+        <span class="week-text" id="weekDisplay"></span>
+        <button onclick="nextWeek()">下週</button>
+        <button onclick="currentWeek()">本週</button>
+      </div>
+      <button class="btn btn-primary" onclick="showAddShiftModal()">新增排班</button>
+      <button class="btn btn-success" onclick="copyLastWeek()">複製上週</button>
+    </div>
+  </div>
+
+  <div class="schedule-grid">
+    <table class="schedule-table">
+      <thead>
+        <tr>
+          <th class="teacher-col">教師</th>
+          <th>週一</th>
+          <th>週二</th>
+          <th>週三</th>
+          <th>週四</th>
+          <th>週五</th>
+          <th>週六</th>
+          <th>週日</th>
+        </tr>
+      </thead>
+      <tbody id="scheduleBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Substitute Tab -->
+<div class="tab-pane" id="tab-substitute">
+  <div class="filter-bar">
+    <select class="filter-select" id="substituteStatusFilter" onchange="filterSubstitutes()">
+      <option value="">全部狀態</option>
+      <option value="pending">待處理</option>
+      <option value="approved">已核准</option>
+      <option value="rejected">已拒絕</option>
+      <option value="completed">已完成</option>
+    </select>
+    <button class="btn btn-primary" onclick="showAddSubstituteModal()">申請代課</button>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>申請日期</th>
+          <th>原教師</th>
+          <th>代課教師</th>
+          <th>代課日期</th>
+          <th>時段</th>
+          <th>原因</th>
+          <th>狀態</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="substituteTbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Leave Tab -->
+<div class="tab-pane" id="tab-leave">
+  <div class="filter-bar">
+    <select class="filter-select" id="leaveStatusFilter" onchange="filterLeaves()">
+      <option value="">全部狀態</option>
+      <option value="pending">待審核</option>
+      <option value="approved">已核准</option>
+      <option value="rejected">已拒絕</option>
+    </select>
+    <button class="btn btn-primary" onclick="showAddLeaveModal()">申請請假</button>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>申請日期</th>
+          <th>教師</th>
+          <th>請假類型</th>
+          <th>開始日期</th>
+          <th>結束日期</th>
+          <th>天數</th>
+          <th>原因</th>
+          <th>狀態</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="leaveTbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Hours Tab -->
+<div class="tab-pane" id="tab-hours">
+  <div class="filter-bar">
+    <select class="filter-select" id="hoursMonthFilter" onchange="filterHours()">
+      <option value="">選擇月份</option>
+    </select>
+    <button class="btn btn-primary" onclick="exportHours()">匯出報表</button>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>教師</th>
+          <th>排班時數</th>
+          <th>實際上課</th>
+          <th>代課時數</th>
+          <th>請假時數</th>
+          <th>總時數</th>
+          <th>時薪</th>
+          <th>預估薪資</th>
+        </tr>
+      </thead>
+      <tbody id="hoursTbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Salary Tab -->
+<div class="tab-pane" id="tab-salary">
+  <div class="filter-bar">
+    <select class="filter-select" id="salaryMonthFilter" onchange="filterSalary()">
+      <option value="">選擇月份</option>
+    </select>
+    <select class="filter-select" id="salaryTeacherFilter" onchange="filterSalary()">
+      <option value="">全部教師</option>
+    </select>
+    <button class="btn btn-primary" onclick="generatePayroll()">生成薪資單</button>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>教師</th>
+          <th>基本時數</th>
+          <th>基本薪資</th>
+          <th>代課時數</th>
+          <th>代課費用</th>
+          <th>獎金</th>
+          <th>扣款</th>
+          <th>實發薪資</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="salaryTbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Add Shift Modal -->
+<div class="modal" id="shiftModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title">新增排班</div>
+      <button class="modal-close" onclick="closeShiftModal()">&times;</button>
+    </div>
+    <form id="shiftForm" onsubmit="saveShift(event)">
+      <div class="form-group">
+        <label class="form-label">教師 *</label>
+        <select class="form-select" name="teacher_id" required id="shiftTeacherSelect">
+          <option value="">請選擇教師</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">日期 *</label>
+        <input class="form-input" name="date" type="date" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">開始時間 *</label>
+        <input class="form-input" name="start_time" type="time" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">結束時間 *</label>
+        <input class="form-input" name="end_time" type="time" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">課程</label>
+        <input class="form-input" name="course" placeholder="選填">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn" onclick="closeShiftModal()">取消</button>
+        <button type="submit" class="btn btn-primary">儲存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Add Substitute Modal -->
+<div class="modal" id="substituteModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title">申請代課</div>
+      <button class="modal-close" onclick="closeSubstituteModal()">&times;</button>
+    </div>
+    <form id="substituteForm" onsubmit="saveSubstitute(event)">
+      <div class="form-group">
+        <label class="form-label">原教師 *</label>
+        <select class="form-select" name="original_teacher_id" required>
+          <option value="">請選擇教師</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">代課教師 *</label>
+        <select class="form-select" name="substitute_teacher_id" required>
+          <option value="">請選擇教師</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">代課日期 *</label>
+        <input class="form-input" name="date" type="date" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">時段 *</label>
+        <input class="form-input" name="time_slot" required placeholder="例：14:00-16:00">
+      </div>
+      <div class="form-group">
+        <label class="form-label">原因 *</label>
+        <textarea class="form-textarea" name="reason" required></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn" onclick="closeSubstituteModal()">取消</button>
+        <button type="submit" class="btn btn-primary">提交</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Add Leave Modal -->
+<div class="modal" id="leaveModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title">申請請假</div>
+      <button class="modal-close" onclick="closeLeaveModal()">&times;</button>
+    </div>
+    <form id="leaveForm" onsubmit="saveLeave(event)">
+      <div class="form-group">
+        <label class="form-label">教師 *</label>
+        <select class="form-select" name="teacher_id" required>
+          <option value="">請選擇教師</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">請假類型 *</label>
+        <select class="form-select" name="leave_type" required>
+          <option value="">請選擇</option>
+          <option value="sick">病假</option>
+          <option value="personal">事假</option>
+          <option value="annual">特休</option>
+          <option value="other">其他</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">開始日期 *</label>
+        <input class="form-input" name="start_date" type="date" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">結束日期 *</label>
+        <input class="form-input" name="end_date" type="date" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">原因 *</label>
+        <textarea class="form-textarea" name="reason" required></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn" onclick="closeLeaveModal()">取消</button>
+        <button type="submit" class="btn btn-primary">提交</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+const API = '';
+const pw = sessionStorage.getItem('adminPassword') || '';
+let teachers = [];
+let shifts = [];
+let substitutes = [];
+let leaves = [];
+let currentWeekStart = new Date();
+
+// Set to Monday
+currentWeekStart.setDate(currentWeekStart.getDate() - currentWeekStart.getDay() + 1);
+
+async function loadData() {
+  await loadTeachers();
+  await loadShifts();
+  await loadSubstitutes();
+  await loadLeaves();
+  renderSchedule();
+  renderSubstitutes();
+  renderLeaves();
+  renderHours();
+  renderSalary();
+  updateStats();
+  populateMonthFilters();
+}
+
+async function loadTeachers() {
+  const res = await fetch(`${API}/admin/api/teachers`, { headers: { 'X-Admin-Password': pw } });
+  const all = await res.json();
+  teachers = all.filter(t => t.is_active !== false);
+  
+  // Populate teacher selects
+  const selects = document.querySelectorAll('select[name="teacher_id"], select[name="original_teacher_id"], select[name="substitute_teacher_id"]');
+  selects.forEach(select => {
+    select.innerHTML = '<option value="">請選擇教師</option>' + 
+      teachers.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+  });
+  
+  document.getElementById('salaryTeacherFilter').innerHTML = '<option value="">全部教師</option>' + 
+    teachers.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+}
+
+async function loadShifts() {
+  try {
+    const res = await fetch(`${API}/admin/api/shifts`, { headers: { 'X-Admin-Password': pw } });
+    shifts = await res.json();
+  } catch (e) {
+    shifts = [];
+  }
+}
+
+async function loadSubstitutes() {
+  try {
+    const res = await fetch(`${API}/admin/api/substitutes`, { headers: { 'X-Admin-Password': pw } });
+    substitutes = await res.json();
+  } catch (e) {
+    substitutes = [];
+  }
+}
+
+async function loadLeaves() {
+  try {
+    const res = await fetch(`${API}/admin/api/leaves`, { headers: { 'X-Admin-Password': pw } });
+    leaves = await res.json();
+  } catch (e) {
+    leaves = [];
+  }
+}
+
+function renderSchedule() {
+  updateWeekDisplay();
+  const tbody = document.getElementById('scheduleBody');
+  
+  if (!teachers.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty">請先新增教師</td></tr>';
+    return;
+  }
+  
+  const weekDates = [];
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(currentWeekStart);
+    date.setDate(date.getDate() + i);
+    weekDates.push(date.toISOString().split('T')[0]);
+  }
+  
+  tbody.innerHTML = teachers.map(teacher => {
+    const teacherShifts = shifts.filter(s => s.teacher_id === teacher.id);
+    
+    return `
+      <tr>
+        <td class="teacher-col">${teacher.name}</td>
+        ${weekDates.map(date => {
+          const dayShifts = teacherShifts.filter(s => s.date === date);
+          return `
+            <td>
+              ${dayShifts.map(s => `
+                <div class="time-slot" onclick="editShift(${s.id})">
+                  <span class="slot-time">${s.start_time}-${s.end_time}</span>
+                  ${s.course ? `<div class="slot-info">${s.course}</div>` : ''}
+                </div>
+              `).join('')}
+              <button class="add-slot-btn" onclick="quickAddShift(${teacher.id}, '${date}')">+</button>
+            </td>
+          `;
+        }).join('')}
+      </tr>
+    `;
+  }).join('');
+}
+
+function renderSubstitutes() {
+  const tbody = document.getElementById('substituteTbody');
+  const filter = document.getElementById('substituteStatusFilter').value;
+  const filtered = filter ? substitutes.filter(s => s.status === filter) : substitutes;
+  
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty">尚無代課記錄</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML = filtered.map(s => `
+    <tr>
+      <td>${s.created_at}</td>
+      <td>${s.original_teacher_name}</td>
+      <td>${s.substitute_teacher_name}</td>
+      <td>${s.date}</td>
+      <td>${s.time_slot}</td>
+      <td>${s.reason}</td>
+      <td><span class="badge badge-${s.status}">${getStatusText(s.status)}</span></td>
+      <td>
+        ${s.status === 'pending' ? `
+          <button class="btn btn-sm btn-success" onclick="approveSubstitute(${s.id})">核准</button>
+          <button class="btn btn-sm btn-danger" onclick="rejectSubstitute(${s.id})">拒絕</button>
+        ` : '-'}
+      </td>
+    </tr>
+  `).join('');
+}
+
+function renderLeaves() {
+  const tbody = document.getElementById('leaveTbody');
+  const filter = document.getElementById('leaveStatusFilter').value;
+  const filtered = filter ? leaves.filter(l => l.status === filter) : leaves;
+  
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="9" class="empty">尚無請假記錄</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML = filtered.map(l => `
+    <tr>
+      <td>${l.created_at}</td>
+      <td>${l.teacher_name}</td>
+      <td>${getLeaveTypeText(l.leave_type)}</td>
+      <td>${l.start_date}</td>
+      <td>${l.end_date}</td>
+      <td>${l.days}</td>
+      <td>${l.reason}</td>
+      <td><span class="badge badge-${l.status}">${getStatusText(l.status)}</span></td>
+      <td>
+        ${l.status === 'pending' ? `
+          <button class="btn btn-sm btn-success" onclick="approveLeave(${l.id})">核准</button>
+          <button class="btn btn-sm btn-danger" onclick="rejectLeave(${l.id})">拒絕</button>
+        ` : '-'}
+      </td>
+    </tr>
+  `).join('');
+}
+
+function renderHours() {
+  const tbody = document.getElementById('hoursTbody');
+  
+  if (!teachers.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty">尚無工時資料</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML = teachers.map(t => {
+    const teacherShifts = shifts.filter(s => s.teacher_id === t.id);
+    const scheduled = teacherShifts.length * 2; // 假設每班2小時
+    const substitute = substitutes.filter(s => s.substitute_teacher_id === t.id && s.status === 'completed').length * 2;
+    const leave = leaves.filter(l => l.teacher_id === t.id && l.status === 'approved').length * 8;
+    const total = scheduled + substitute - leave;
+    const hourlyRate = t.hourly_rate || 500;
+    const salary = total * hourlyRate;
+    
+    return `
+      <tr>
+        <td><strong>${t.name}</strong></td>
+        <td>${scheduled}</td>
+        <td>${scheduled}</td>
+        <td>${substitute}</td>
+        <td>${leave}</td>
+        <td><strong>${total}</strong></td>
+        <td>NT$ ${hourlyRate}</td>
+        <td><strong>NT$ ${salary.toLocaleString()}</strong></td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function renderSalary() {
+  const tbody = document.getElementById('salaryTbody');
+  const teacherFilter = document.getElementById('salaryTeacherFilter').value;
+  const filtered = teacherFilter ? teachers.filter(t => t.id == teacherFilter) : teachers;
+  
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="9" class="empty">尚無薪資資料</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML = filtered.map(t => {
+    const baseHours = shifts.filter(s => s.teacher_id === t.id).length * 2;
+    const baseRate = t.hourly_rate || 500;
+    const baseSalary = baseHours * baseRate;
+    
+    const subHours = substitutes.filter(s => s.substitute_teacher_id === t.id && s.status === 'completed').length * 2;
+    const subFee = subHours * baseRate * 1.2; // 代課費1.2倍
+    
+    const bonus = 0;
+    const deduction = 0;
+    const total = baseSalary + subFee + bonus - deduction;
+    
+    return `
+      <tr>
+        <td><strong>${t.name}</strong></td>
+        <td>${baseHours}</td>
+        <td>NT$ ${baseSalary.toLocaleString()}</td>
+        <td>${subHours}</td>
+        <td>NT$ ${subFee.toLocaleString()}</td>
+        <td>NT$ ${bonus}</td>
+        <td>NT$ ${deduction}</td>
+        <td><strong>NT$ ${total.toLocaleString()}</strong></td>
+        <td>
+          <button class="btn btn-sm btn-primary" onclick="printPayslip(${t.id})">列印</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function updateStats() {
+  const weekStart = currentWeekStart.toISOString().split('T')[0];
+  const weekEnd = new Date(currentWeekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+  const weekEndStr = weekEnd.toISOString().split('T')[0];
+  
+  const weekShifts = shifts.filter(s => s.date >= weekStart && s.date <= weekEndStr).length;
+  const weekSubs = substitutes.filter(s => s.date >= weekStart && s.date <= weekEndStr).length;
+  const pending = leaves.filter(l => l.status === 'pending').length;
+  
+  document.getElementById('weekShifts').textContent = weekShifts;
+  document.getElementById('weekSubstitutes').textContent = weekSubs;
+  document.getElementById('pendingLeaves').textContent = pending;
+  document.getElementById('activeTeachers').textContent = teachers.length;
+}
+
+function updateWeekDisplay() {
+  const end = new Date(currentWeekStart);
+  end.setDate(end.getDate() + 6);
+  
+  const format = (d) => `${d.getMonth() + 1}/${d.getDate()}`;
+  document.getElementById('weekDisplay').textContent = `${format(currentWeekStart)} - ${format(end)}`;
+}
+
+function previousWeek() {
+  currentWeekStart.setDate(currentWeekStart.getDate() - 7);
+  renderSchedule();
+  updateStats();
+}
+
+function nextWeek() {
+  currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+  renderSchedule();
+  updateStats();
+}
+
+function currentWeek() {
+  currentWeekStart = new Date();
+  currentWeekStart.setDate(currentWeekStart.getDate() - currentWeekStart.getDay() + 1);
+  renderSchedule();
+  updateStats();
+}
+
+function showAddShiftModal() {
+  document.getElementById('shiftForm').reset();
+  document.getElementById('shiftModal').classList.add('show');
+}
+
+function closeShiftModal() {
+  document.getElementById('shiftModal').classList.remove('show');
+}
+
+async function saveShift(e) {
+  e.preventDefault();
+  const form = e.target;
+  const data = {
+    teacher_id: parseInt(form.teacher_id.value),
+    date: form.date.value,
+    start_time: form.start_time.value,
+    end_time: form.end_time.value,
+    course: form.course.value
+  };
+  
+  const res = await fetch(`${API}/admin/api/shifts`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Password': pw },
+    body: JSON.stringify(data)
+  });
+  
+  if (res.ok) {
+    await loadShifts();
+    renderSchedule();
+    updateStats();
+    closeShiftModal();
+    alert('排班已新增');
+  }
+}
+
+function quickAddShift(teacherId, date) {
+  const form = document.getElementById('shiftForm');
+  form.teacher_id.value = teacherId;
+  form.date.value = date;
+  showAddShiftModal();
+}
+
+function showAddSubstituteModal() {
+  document.getElementById('substituteForm').reset();
+  document.getElementById('substituteModal').classList.add('show');
+}
+
+function closeSubstituteModal() {
+  document.getElementById('substituteModal').classList.remove('show');
+}
+
+async function saveSubstitute(e) {
+  e.preventDefault();
+  const form = e.target;
+  const data = {
+    original_teacher_id: parseInt(form.original_teacher_id.value),
+    substitute_teacher_id: parseInt(form.substitute_teacher_id.value),
+    date: form.date.value,
+    time_slot: form.time_slot.value,
+    reason: form.reason.value,
+    status: 'pending'
+  };
+  
+  const res = await fetch(`${API}/admin/api/substitutes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Password': pw },
+    body: JSON.stringify(data)
+  });
+  
+  if (res.ok) {
+    await loadSubstitutes();
+    renderSubstitutes();
+    updateStats();
+    closeSubstituteModal();
+    alert('代課申請已提交');
+  }
+}
+
+function showAddLeaveModal() {
+  document.getElementById('leaveForm').reset();
+  document.getElementById('leaveModal').classList.add('show');
+}
+
+function closeLeaveModal() {
+  document.getElementById('leaveModal').classList.remove('show');
+}
+
+async function saveLeave(e) {
+  e.preventDefault();
+  const form = e.target;
+  const start = new Date(form.start_date.value);
+  const end = new Date(form.end_date.value);
+  const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+  
+  const data = {
+    teacher_id: parseInt(form.teacher_id.value),
+    leave_type: form.leave_type.value,
+    start_date: form.start_date.value,
+    end_date: form.end_date.value,
+    days: days,
+    reason: form.reason.value,
+    status: 'pending'
+  };
+  
+  const res = await fetch(`${API}/admin/api/leaves`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Password': pw },
+    body: JSON.stringify(data)
+  });
+  
+  if (res.ok) {
+    await loadLeaves();
+    renderLeaves();
+    updateStats();
+    closeLeaveModal();
+    alert('請假申請已提交');
+  }
+}
+
+async function approveSubstitute(id) {
+  if (!confirm('確定要核准此代課申請？')) return;
+  
+  const res = await fetch(`${API}/admin/api/substitutes/${id}/approve`, {
+    method: 'POST',
+    headers: { 'X-Admin-Password': pw }
+  });
+  
+  if (res.ok) {
+    await loadSubstitutes();
+    renderSubstitutes();
+    updateStats();
+  }
+}
+
+async function rejectSubstitute(id) {
+  if (!confirm('確定要拒絕此代課申請？')) return;
+  
+  const res = await fetch(`${API}/admin/api/substitutes/${id}/reject`, {
+    method: 'POST',
+    headers: { 'X-Admin-Password': pw }
+  });
+  
+  if (res.ok) {
+    await loadSubstitutes();
+    renderSubstitutes();
+    updateStats();
+  }
+}
+
+async function approveLeave(id) {
+  if (!confirm('確定要核准此請假申請？')) return;
+  
+  const res = await fetch(`${API}/admin/api/leaves/${id}/approve`, {
+    method: 'POST',
+    headers: { 'X-Admin-Password': pw }
+  });
+  
+  if (res.ok) {
+    await loadLeaves();
+    renderLeaves();
+    updateStats();
+  }
+}
+
+async function rejectLeave(id) {
+  if (!confirm('確定要拒絕此請假申請？')) return;
+  
+  const res = await fetch(`${API}/admin/api/leaves/${id}/reject`, {
+    method: 'POST',
+    headers: { 'X-Admin-Password': pw }
+  });
+  
+  if (res.ok) {
+    await loadLeaves();
+    renderLeaves();
+    updateStats();
+  }
+}
+
+function filterSubstitutes() {
+  renderSubstitutes();
+}
+
+function filterLeaves() {
+  renderLeaves();
+}
+
+function filterHours() {
+  renderHours();
+}
+
+function filterSalary() {
+  renderSalary();
+}
+
+function copyLastWeek() {
+  alert('複製上週排班功能開發中');
+}
+
+function editShift(id) {
+  alert('編輯排班功能開發中');
+}
+
+function exportHours() {
+  alert('匯出工時報表功能開發中');
+}
+
+function generatePayroll() {
+  alert('生成薪資單功能開發中');
+}
+
+function printPayslip(teacherId) {
+  alert('列印薪資條功能開發中');
+}
+
+function populateMonthFilters() {
+  const months = [];
+  const now = new Date();
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push({
+      value: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+      text: `${d.getFullYear()}年${d.getMonth() + 1}月`
+    });
+  }
+  
+  const hoursFilter = document.getElementById('hoursMonthFilter');
+  const salaryFilter = document.getElementById('salaryMonthFilter');
+  
+  const html = '<option value="">選擇月份</option>' + months.map(m => 
+    `<option value="${m.value}">${m.text}</option>`
+  ).join('');
+  
+  hoursFilter.innerHTML = html;
+  salaryFilter.innerHTML = html;
+}
+
+function getStatusText(status) {
+  const map = {
+    'pending': '待處理',
+    'approved': '已核准',
+    'rejected': '已拒絕',
+    'completed': '已完成'
+  };
+  return map[status] || status;
+}
+
+function getLeaveTypeText(type) {
+  const map = {
+    'sick': '病假',
+    'personal': '事假',
+    'annual': '特休',
+    'other': '其他'
+  };
+  return map[type] || type;
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById(`tab-${tab}`).classList.add('active');
+}
+
+// Init
+loadData();
+</script>
+
+</body>
+</html>

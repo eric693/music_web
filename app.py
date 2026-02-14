@@ -252,6 +252,89 @@ class Grade(db.Model):
         }
 
 
+class Shift(db.Model):
+    __tablename__ = 'shifts'
+    id              = db.Column(db.Integer, primary_key=True)
+    teacher_id      = db.Column(db.Integer, db.ForeignKey('teachers.id'), nullable=False)
+    date            = db.Column(db.String(10), nullable=False)  # YYYY-MM-DD
+    start_time      = db.Column(db.String(5), nullable=False)   # HH:MM
+    end_time        = db.Column(db.String(5), nullable=False)   # HH:MM
+    course          = db.Column(db.String(100))
+    created_at      = db.Column(db.DateTime, default=datetime.now)
+
+    teacher = db.relationship('Teacher', backref='shifts')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'teacher_id': self.teacher_id,
+            'teacher_name': self.teacher.name if self.teacher else '',
+            'date': self.date,
+            'start_time': self.start_time,
+            'end_time': self.end_time,
+            'course': self.course,
+            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M') if self.created_at else '',
+        }
+
+
+class Substitute(db.Model):
+    __tablename__ = 'substitutes'
+    id                      = db.Column(db.Integer, primary_key=True)
+    original_teacher_id     = db.Column(db.Integer, db.ForeignKey('teachers.id'), nullable=False)
+    substitute_teacher_id   = db.Column(db.Integer, db.ForeignKey('teachers.id'), nullable=False)
+    date                    = db.Column(db.String(10), nullable=False)
+    time_slot               = db.Column(db.String(20), nullable=False)
+    reason                  = db.Column(db.Text)
+    status                  = db.Column(db.String(20), default='pending')  # pending, approved, rejected, completed
+    created_at              = db.Column(db.DateTime, default=datetime.now)
+
+    original_teacher = db.relationship('Teacher', foreign_keys=[original_teacher_id], backref='original_substitutes')
+    substitute_teacher = db.relationship('Teacher', foreign_keys=[substitute_teacher_id], backref='substitute_shifts')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'original_teacher_id': self.original_teacher_id,
+            'original_teacher_name': self.original_teacher.name if self.original_teacher else '',
+            'substitute_teacher_id': self.substitute_teacher_id,
+            'substitute_teacher_name': self.substitute_teacher.name if self.substitute_teacher else '',
+            'date': self.date,
+            'time_slot': self.time_slot,
+            'reason': self.reason,
+            'status': self.status,
+            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M') if self.created_at else '',
+        }
+
+
+class Leave(db.Model):
+    __tablename__ = 'leaves'
+    id              = db.Column(db.Integer, primary_key=True)
+    teacher_id      = db.Column(db.Integer, db.ForeignKey('teachers.id'), nullable=False)
+    leave_type      = db.Column(db.String(20), nullable=False)  # sick, personal, annual, other
+    start_date      = db.Column(db.String(10), nullable=False)
+    end_date        = db.Column(db.String(10), nullable=False)
+    days            = db.Column(db.Integer, nullable=False)
+    reason          = db.Column(db.Text)
+    status          = db.Column(db.String(20), default='pending')  # pending, approved, rejected
+    created_at      = db.Column(db.DateTime, default=datetime.now)
+
+    teacher = db.relationship('Teacher', backref='leaves')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'teacher_id': self.teacher_id,
+            'teacher_name': self.teacher.name if self.teacher else '',
+            'leave_type': self.leave_type,
+            'start_date': self.start_date,
+            'end_date': self.end_date,
+            'days': self.days,
+            'reason': self.reason,
+            'status': self.status,
+            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M') if self.created_at else '',
+        }
+
+
 class Booking(db.Model):
     __tablename__ = 'bookings'
     id           = db.Column(db.Integer, primary_key=True)
@@ -382,6 +465,11 @@ def attendance():
 def grades():
     """成績管理頁面（iframe用）"""
     return send_from_directory('static', 'grades.html')
+
+@app.route('/staff-schedule')
+def staff_schedule():
+    """排班管理頁面（iframe用）"""
+    return send_from_directory('static', 'staff-schedule.html')
 
 
 # ─────────────────────────────────────────────
@@ -970,6 +1058,130 @@ def _calculate_ranks(exam_id):
                 grade.trend = 'stable'
     
     db.session.commit()
+
+
+# ─────────────────────────────────────────────
+# 排班管理 API
+# ─────────────────────────────────────────────
+
+@app.route('/admin/api/shifts', methods=['GET'])
+def admin_get_shifts():
+    check_admin()
+    shifts = Shift.query.order_by(Shift.date, Shift.start_time).all()
+    return jsonify([s.to_dict() for s in shifts])
+
+
+@app.route('/admin/api/shifts', methods=['POST'])
+def admin_add_shift():
+    check_admin()
+    data = request.get_json()
+    
+    shift = Shift(
+        teacher_id=data['teacher_id'],
+        date=data['date'],
+        start_time=data['start_time'],
+        end_time=data['end_time'],
+        course=data.get('course', ''),
+    )
+    db.session.add(shift)
+    db.session.commit()
+    return jsonify(shift.to_dict()), 201
+
+
+@app.route('/admin/api/shifts/<int:sid>', methods=['DELETE'])
+def admin_delete_shift(sid):
+    check_admin()
+    shift = Shift.query.get_or_404(sid)
+    db.session.delete(shift)
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+@app.route('/admin/api/substitutes', methods=['GET'])
+def admin_get_substitutes():
+    check_admin()
+    substitutes = Substitute.query.order_by(Substitute.created_at.desc()).all()
+    return jsonify([s.to_dict() for s in substitutes])
+
+
+@app.route('/admin/api/substitutes', methods=['POST'])
+def admin_add_substitute():
+    check_admin()
+    data = request.get_json()
+    
+    substitute = Substitute(
+        original_teacher_id=data['original_teacher_id'],
+        substitute_teacher_id=data['substitute_teacher_id'],
+        date=data['date'],
+        time_slot=data['time_slot'],
+        reason=data.get('reason', ''),
+        status='pending',
+    )
+    db.session.add(substitute)
+    db.session.commit()
+    return jsonify(substitute.to_dict()), 201
+
+
+@app.route('/admin/api/substitutes/<int:sid>/approve', methods=['POST'])
+def admin_approve_substitute(sid):
+    check_admin()
+    substitute = Substitute.query.get_or_404(sid)
+    substitute.status = 'approved'
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+@app.route('/admin/api/substitutes/<int:sid>/reject', methods=['POST'])
+def admin_reject_substitute(sid):
+    check_admin()
+    substitute = Substitute.query.get_or_404(sid)
+    substitute.status = 'rejected'
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+@app.route('/admin/api/leaves', methods=['GET'])
+def admin_get_leaves():
+    check_admin()
+    leaves = Leave.query.order_by(Leave.created_at.desc()).all()
+    return jsonify([l.to_dict() for l in leaves])
+
+
+@app.route('/admin/api/leaves', methods=['POST'])
+def admin_add_leave():
+    check_admin()
+    data = request.get_json()
+    
+    leave = Leave(
+        teacher_id=data['teacher_id'],
+        leave_type=data['leave_type'],
+        start_date=data['start_date'],
+        end_date=data['end_date'],
+        days=data['days'],
+        reason=data.get('reason', ''),
+        status='pending',
+    )
+    db.session.add(leave)
+    db.session.commit()
+    return jsonify(leave.to_dict()), 201
+
+
+@app.route('/admin/api/leaves/<int:lid>/approve', methods=['POST'])
+def admin_approve_leave(lid):
+    check_admin()
+    leave = Leave.query.get_or_404(lid)
+    leave.status = 'approved'
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+@app.route('/admin/api/leaves/<int:lid>/reject', methods=['POST'])
+def admin_reject_leave(lid):
+    check_admin()
+    leave = Leave.query.get_or_404(lid)
+    leave.status = 'rejected'
+    db.session.commit()
+    return jsonify({'success': True})
 
 
 # ─────────────────────────────────────────────

@@ -317,10 +317,12 @@ if (!sessionStorage.getItem('adminPassword')) {
     </div>
     <div class="nav-item" onclick="showPage('attendance')">
       <span class="nav-label">出席打卡</span>
-      <span class="nav-badge">NEW</span>
     </div>
     <div class="nav-item" onclick="showPage('grades')">
       <span class="nav-label">成績管理</span>
+    </div>
+    <div class="nav-item" onclick="showPage('staff-schedule')">
+      <span class="nav-label">排班管理</span>
       <span class="nav-badge">NEW</span>
     </div>
     <div class="nav-item" onclick="showPage('finance')">
@@ -511,6 +513,11 @@ if (!sessionStorage.getItem('adminPassword')) {
   <div class="page" id="page-grades">
     <h2 style="margin-bottom: 20px; font-size: 24px; font-weight: 700;">成績管理</h2>
     <iframe src="/grades" style="width: 100%; height: calc(100vh - 140px); border: none; border-radius: 12px; background: white;"></iframe>
+  </div>
+
+  <div class="page" id="page-staff-schedule">
+    <h2 style="margin-bottom: 20px; font-size: 24px; font-weight: 700;">排班管理</h2>
+    <iframe src="/staff-schedule" style="width: 100%; height: calc(100vh - 140px); border: none; border-radius: 12px; background: white;"></iframe>
   </div>
 
   <!-- Website Module Pages -->
