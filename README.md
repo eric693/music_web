@@ -1,14 +1,15 @@
 # 音樂補習班管理系統 - 完整版
 
-完整的補習班管理系統，包含 13 個功能模組，涵蓋預約、師生、財務、LINE、網站等完整功能。
+完整的補習班管理系統，包含 16 個功能模組，涵蓋預約、師生、財務、LINE、網站、出席、成績、排班等完整功能。
 
 ## 系統特色
 
-- 完整的 13 個功能模組，全部已實作完成
+- 完整的 16 個功能模組，全部已實作完成
 - 模組化設計，可彈性啟用/停用
 - 專業的紫色主題介面
 - 響應式設計，支援電腦與手機
 - 完整的資料庫設計與 API
+- 無 Emoji / Icon 設計，專業簡潔
 
 ## 快速啟動
 
@@ -41,14 +42,17 @@ music_booking/
 ├── app.py                     # Flask 後端主程式
 ├── requirements.txt           # Python 套件清單
 ├── README.md                  # 說明文件
+├── LINE_SETUP.md             # LINE 串接設定指南
 ├── MODULE_CHECKLIST.md        # 模組檢查清單
-├── QUICKSTART.md             # 快速開始指南
 ├── static/                    # 前端靜態檔案
 │   ├── index.html            # 模組管理首頁
 │   ├── admin.html            # 管理員登入頁
 │   ├── booking.html          # 學生預約頁面
 │   ├── booking-admin.html    # 預約管理（iframe）
 │   ├── teacher-mgmt.html     # 師生管理（iframe）
+│   ├── attendance.html       # 出席打卡（iframe）
+│   ├── grades.html           # 成績管理（iframe）
+│   ├── staff-schedule.html   # 排班管理（iframe）
 │   ├── finance.html          # 財務報表（iframe）
 │   ├── accounting.html       # 會計科目（iframe）
 │   ├── course-schedule.html  # 課表系統（iframe）
@@ -119,7 +123,78 @@ music_booking/
 - 學生編號自動生成
 - 統計資訊（在學/總數）
 
-#### 7. 財務報表
+#### 7. 出席打卡系統
+- 快速打卡
+  - 選擇學生與狀態（出席/遲到/缺席/請假）
+  - 即時記錄打卡時間
+- 打卡記錄
+  - 日期篩選
+  - 狀態篩選
+  - 學生搜尋
+  - 刪除記錄
+- QR Code 打卡
+  - 自動生成 QR Code
+  - 5 分鐘自動更新
+  - 學生掃碼打卡
+- 統計報表
+  - 今日出席/遲到/缺席統計
+  - 出席率計算
+  - 學生個別統計
+  - 自動更新（30秒）
+
+#### 8. 成績管理系統
+- 考試管理
+  - 新增考試（名稱、日期、滿分、及格分數）
+  - 考試列表
+- 成績登記
+  - 選擇考試與學生
+  - 輸入分數與備註
+  - 自動等第計算（A/B/C/D/F）
+  - 自動排名計算
+  - 自動進退步分析
+- 成績分析
+  - 平均分數、最高分、最低分
+  - 及格率統計
+  - 學生個別分析
+  - 進步幅度追蹤
+  - 趨勢圖表（預留）
+- 成績單生成
+  - 選擇學生與時間範圍
+  - 生成完整成績單
+  - PDF 匯出（預留）
+
+#### 9. 排班管理系統
+- 排班表（週曆視圖）
+  - 視覺化週曆（橫軸7天、縱軸教師）
+  - 週導航（上週/下週/本週）
+  - 新增排班（教師/日期/時段/課程）
+  - 快速新增（點擊空格）
+  - 複製上週排班（預留）
+- 代課申請
+  - 申請代課（原教師/代課教師/日期/時段/原因）
+  - 審核功能（待處理/核准/拒絕）
+  - 狀態追蹤（待處理/已核准/已拒絕/已完成）
+  - 狀態篩選
+- 請假管理
+  - 申請請假（教師/類型/起迄日期/原因）
+  - 自動計算天數
+  - 審核功能（待審核/核准/拒絕）
+  - 狀態篩選
+- 工時統計
+  - 月份篩選
+  - 排班時數、實際上課、代課、請假時數
+  - 總時數與時薪
+  - 預估薪資
+  - 匯出報表（預留）
+- 薪資計算
+  - 基本時數與薪資
+  - 代課時數與費用（1.2倍）
+  - 獎金與扣款
+  - 實發薪資
+  - 生成薪資單（預留）
+  - 列印薪資條（預留）
+
+#### 10. 財務報表
 - 收入明細管理
   - 新增收入記錄
   - 學生選擇
@@ -135,7 +210,7 @@ music_booking/
   - 淨收入
   - 本月收入
 
-#### 8. 會計科目
+#### 11. 會計科目
 - 收入科目管理
 - 支出科目管理
 - 新增/刪除科目
@@ -143,7 +218,7 @@ music_booking/
 - 資料保存（LocalStorage）
 - 預設科目範本
 
-#### 9. 課表系統
+#### 12. 課表系統
 - 週曆顯示
 - 今日高亮
 - 課程時段顯示
@@ -153,7 +228,7 @@ music_booking/
   - 今日課程數
   - 本週教師數
 
-#### 10. CEO每日報
+#### 13. CEO每日報
 - 今日 KPI 儀表板
   - 今日收入
   - 在學學生
@@ -170,7 +245,7 @@ music_booking/
 
 ### 形象網站模組（$3000/年）
 
-#### 11. 網站設計
+#### 14. 網站設計
 - 基本設定
   - 網站標題
   - 副標題
@@ -180,7 +255,7 @@ music_booking/
 - 即時預覽功能
 - 設定保存
 
-#### 12. 內容管理
+#### 15. 內容管理
 - 分頁式內容編輯
   - 關於我們
   - 課程介紹
@@ -190,7 +265,7 @@ music_booking/
 - 最新消息發布
 - 內容保存
 
-#### 13. 線上報名
+#### 16. 線上報名
 - 報名申請列表
 - 狀態管理（待審核/已核准/已拒絕）
 - 篩選功能
@@ -209,6 +284,12 @@ music_booking/
 - `students` - 學生資料（含家長資訊、報名日期）
 - `payments` - 繳費記錄（金額、日期、付款方式、月份）
 - `expenses` - 支出記錄（分類、金額、日期、說明）
+- `attendance` - 出席記錄（學生、日期、時間、狀態、遲到分鐘）
+- `exams` - 考試資料（名稱、日期、滿分、及格分數）
+- `grades` - 成績記錄（考試、學生、分數、排名、趨勢）
+- `shifts` - 排班表（教師、日期、時段、課程）
+- `substitutes` - 代課記錄（原教師、代課教師、日期、時段、狀態）
+- `leaves` - 請假記錄（教師、類型、起迄日期、天數、狀態）
 
 ## API 端點
 
@@ -231,6 +312,22 @@ music_booking/
 | GET/POST/DELETE | `/admin/api/payments` | 繳費管理 |
 | GET/POST/DELETE | `/admin/api/expenses` | 支出管理 |
 | GET | `/admin/api/finance/summary` | 財務摘要統計 |
+| GET/POST/DELETE | `/admin/api/attendance` | 出席打卡管理 |
+| GET | `/admin/api/attendance/stats` | 出席統計 |
+| GET/POST/DELETE | `/admin/api/exams` | 考試管理 |
+| GET/POST/DELETE | `/admin/api/grades` | 成績管理 |
+| GET/POST/DELETE | `/admin/api/shifts` | 排班管理 |
+| GET/POST | `/admin/api/substitutes` | 代課申請 |
+| POST | `/admin/api/substitutes/:id/approve` | 核准代課 |
+| POST | `/admin/api/substitutes/:id/reject` | 拒絕代課 |
+| GET/POST | `/admin/api/leaves` | 請假申請 |
+| POST | `/admin/api/leaves/:id/approve` | 核准請假 |
+| POST | `/admin/api/leaves/:id/reject` | 拒絕請假 |
+| GET | `/admin/api/line/config` | LINE 設定狀態 |
+| POST | `/admin/api/line/test` | 測試 LINE 連線 |
+| POST | `/admin/api/line/broadcast` | LINE 群發訊息 |
+| POST | `/admin/api/line/push` | LINE 推送訊息 |
+| POST | `/webhook/line` | LINE Webhook（公開） |
 
 ### 頁面路由
 | 路徑 | 說明 |
@@ -239,6 +336,9 @@ music_booking/
 | `/dashboard` | 模組管理首頁 |
 | `/booking-admin` | 預約管理頁面 |
 | `/teacher-mgmt` | 師生管理頁面 |
+| `/attendance` | 出席打卡頁面 |
+| `/grades` | 成績管理頁面 |
+| `/staff-schedule` | 排班管理頁面 |
 | `/finance` | 財務報表頁面 |
 | `/accounting` | 會計科目頁面 |
 | `/course-schedule` | 課表系統頁面 |
@@ -256,10 +356,14 @@ music_booking/
 |------|------|--------|
 | `SECRET_KEY` | Flask Session 金鑰 | music-school-secret-2024 |
 | `ADMIN_PASSWORD` | 管理後台密碼 | admin123 |
+| `LINE_CHANNEL_ACCESS_TOKEN` | LINE Channel Access Token | （選填）|
+| `LINE_CHANNEL_SECRET` | LINE Channel Secret | （選填）|
 
 設定方式：
 ```bash
 export ADMIN_PASSWORD="你的密碼"
+export LINE_CHANNEL_ACCESS_TOKEN="你的_Access_Token"
+export LINE_CHANNEL_SECRET="你的_Channel_Secret"
 python app.py
 ```
 
@@ -307,6 +411,8 @@ services:
 - 前端：HTML5 + CSS3 + JavaScript（原生）
 - 字體：Noto Sans TC（Google Fonts）
 - 架構：模組化 + iframe 嵌入設計
+- HTTP 客戶端：requests 2.31.0（LINE API 串接）
+- QR Code：qrcode.js 1.5.1（出席打卡）
 
 ## 設計特色
 
@@ -327,11 +433,11 @@ services:
 ## 功能完成度
 
 - 核心功能：2/2 = 100%
-- 基本功能模組：5/5 = 100%
+- 基本功能模組：8/8 = 100%
 - LINE 串接模組：3/3 = 100%
 - 形象網站模組：3/3 = 100%
 
-總完成度：13/13 = 100%
+總完成度：16/16 = 100%
 
 ## 後續擴充
 
@@ -343,17 +449,19 @@ services:
 5. 更新 JavaScript 模組狀態
 
 ### 可擴充功能：
-- 學生出席打卡系統
-- 成績管理系統
-- 家長評價系統
+- 學生家長 APP
 - 影片教學系統
 - 線上繳費整合
+- 庫存管理系統
+- 數據分析儀表板
+- 試聽課程管理
+- 推薦獎勵系統
+- 活動管理系統
 
 ## 相關文件
 
+- `LINE_SETUP.md` - LINE API 串接設定完整指南
 - `MODULE_CHECKLIST.md` - 詳細的模組功能檢查清單
-- `QUICKSTART.md` - 快速使用指南
-- `architecture.html` - 系統架構視覺化文件
 
 ## 授權
 
