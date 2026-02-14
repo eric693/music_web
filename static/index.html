@@ -315,6 +315,14 @@ if (!sessionStorage.getItem('adminPassword')) {
     <div class="nav-item" onclick="showPage('teacher-mgmt')">
       <span class="nav-label">師生管理</span>
     </div>
+    <div class="nav-item" onclick="showPage('attendance')">
+      <span class="nav-label">出席打卡</span>
+      <span class="nav-badge">NEW</span>
+    </div>
+    <div class="nav-item" onclick="showPage('grades')">
+      <span class="nav-label">成績管理</span>
+      <span class="nav-badge">NEW</span>
+    </div>
     <div class="nav-item" onclick="showPage('finance')">
       <span class="nav-label">財務報表</span>
     </div>
@@ -493,6 +501,16 @@ if (!sessionStorage.getItem('adminPassword')) {
   <div class="page" id="page-ceo-report">
     <h2 style="margin-bottom: 20px; font-size: 24px; font-weight: 700;">CEO每日報</h2>
     <iframe src="/ceo-report" style="width: 100%; height: calc(100vh - 140px); border: none; border-radius: 12px; background: white;"></iframe>
+  </div>
+
+  <div class="page" id="page-attendance">
+    <h2 style="margin-bottom: 20px; font-size: 24px; font-weight: 700;">出席打卡</h2>
+    <iframe src="/attendance" style="width: 100%; height: calc(100vh - 140px); border: none; border-radius: 12px; background: white;"></iframe>
+  </div>
+
+  <div class="page" id="page-grades">
+    <h2 style="margin-bottom: 20px; font-size: 24px; font-weight: 700;">成績管理</h2>
+    <iframe src="/grades" style="width: 100%; height: calc(100vh - 140px); border: none; border-radius: 12px; background: white;"></iframe>
   </div>
 
   <!-- Website Module Pages -->

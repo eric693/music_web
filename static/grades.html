@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>成績管理系統</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --purple: #7c3aed; --purple-light: #ede9fe; --text: #1a1a2e;
+  --sub: #6b7280; --border: #e5e7eb; --bg: #f3f4f6; --white: #fff;
+  --green: #10b981; --red: #ef4444; --blue: #3b82f6; --yellow: #fbbf24;
+  --radius: 10px;
+}
+body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
+
+.header { margin-bottom: 24px; }
+.header h2 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+.header p { font-size: 14px; color: var(--sub); }
+
+/* Tabs */
+.tabs { display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 2px solid var(--border); }
+.tab { padding: 10px 20px; font-size: 14px; font-weight: 500; color: var(--sub); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .2s; }
+.tab.active { color: var(--purple); border-bottom-color: var(--purple); }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+/* Stats */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.stat-card { background: white; border-radius: var(--radius); padding: 20px; border: 1px solid var(--border); }
+.stat-label { font-size: 13px; color: var(--sub); margin-bottom: 6px; }
+.stat-value { font-size: 28px; font-weight: 700; color: var(--purple); }
+
+/* Filter */
+.filter-bar { display: flex; gap: 10px; margin-bottom: 18px; align-items: center; flex-wrap: wrap; }
+.filter-select { padding: 8px 14px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; }
+.search-input { flex: 1; min-width: 200px; padding: 8px 14px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; }
+
+/* Table */
+.table-wrap { background: white; border-radius: var(--radius); border: 1px solid var(--border); overflow-x: auto; margin-bottom: 20px; }
+.table-wrap table { width: 100%; border-collapse: collapse; min-width: 800px; }
+.table-wrap th { background: #f9fafb; padding: 12px 16px; text-align: left; font-size: 12px; color: var(--sub); font-weight: 600; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.table-wrap td { padding: 14px 16px; font-size: 13px; border-bottom: 1px solid #f3f4f6; }
+.table-wrap tr:last-child td { border-bottom: none; }
+.table-wrap tr:hover td { background: #fafafa; }
+
+/* Grade Badge */
+.grade { font-weight: 700; font-size: 14px; }
+.grade.excellent { color: var(--green); }
+.grade.good { color: var(--blue); }
+.grade.average { color: var(--yellow); }
+.grade.poor { color: var(--red); }
+
+/* Trend */
+.trend { font-size: 12px; font-weight: 600; }
+.trend.up { color: var(--green); }
+.trend.down { color: var(--red); }
+.trend.stable { color: var(--sub); }
+
+/* Buttons */
+.btn { padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; font-family: inherit; transition: all .15s; }
+.btn-primary { background: var(--purple); color: white; }
+.btn-primary:hover { background: #6d28d9; }
+.btn-sm { padding: 4px 12px; font-size: 12px; }
+.btn-success { background: var(--green); color: white; }
+.btn-danger { background: var(--red); color: white; }
+
+/* Modal */
+.modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+.modal.show { display: flex; }
+.modal-content { background: white; border-radius: 12px; padding: 24px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.modal-title { font-size: 18px; font-weight: 700; }
+.modal-close { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--sub); }
+
+.form-group { margin-bottom: 16px; }
+.form-label { display: block; font-size: 13px; font-weight: 500; color: var(--sub); margin-bottom: 6px; }
+.form-input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; font-family: inherit; }
+.form-input:focus { outline: none; border-color: var(--purple); }
+.form-select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; }
+.form-textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; font-family: inherit; min-height: 80px; resize: vertical; }
+.modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+
+.empty { text-align: center; padding: 40px; color: var(--sub); }
+
+/* Chart placeholder */
+.chart-container { background: white; border-radius: var(--radius); padding: 24px; border: 1px solid var(--border); margin-bottom: 20px; }
+.chart-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+.chart-placeholder { background: var(--bg); border-radius: 8px; padding: 60px 20px; text-align: center; color: var(--sub); font-size: 14px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h2>成績管理系統</h2>
+  <p>學生成績登記與分析</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('grades')">成績登記</div>
+  <div class="tab" onclick="switchTab('analysis')">成績分析</div>
+  <div class="tab" onclick="switchTab('reports')">成績單</div>
+</div>
+
+<!-- Grades Tab -->
+<div class="tab-pane active" id="tab-grades">
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-label">平均分數</div>
+      <div class="stat-value" id="avgScore">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">最高分</div>
+      <div class="stat-value" style="color:var(--green);" id="maxScore">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">最低分</div>
+      <div class="stat-value" style="color:var(--red);" id="minScore">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">及格率</div>
+      <div class="stat-value" id="passRate">0%</div>
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    <select class="filter-select" id="examFilter" onchange="filterGrades()">
+      <option value="">全部考試</option>
+    </select>
+    <input class="search-input" id="searchInput" placeholder="搜尋學生姓名..." oninput="filterGrades()">
+    <button class="btn btn-primary" onclick="showAddGradeModal()">新增成績</button>
+    <button class="btn btn-success" onclick="showAddExamModal()">新增考試</button>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>學生</th>
+          <th>考試名稱</th>
+          <th>分數</th>
+          <th>等第</th>
+          <th>排名</th>
+          <th>進退步</th>
+          <th>日期</th>
+          <th>備註</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="gradesTbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Analysis Tab -->
+<div class="tab-pane" id="tab-analysis">
+  <div class="chart-container">
+    <div class="chart-title">成績趨勢圖</div>
+    <div class="chart-placeholder">
+      成績趨勢圖表區域<br>
+      可整合 Chart.js 顯示學生成績變化
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>學生</th>
+          <th>考試次數</th>
+          <th>平均分數</th>
+          <th>最高分</th>
+          <th>最低分</th>
+          <th>進步幅度</th>
+          <th>排名趨勢</th>
+        </tr>
+      </thead>
+      <tbody id="analysisTbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Reports Tab -->
+<div class="tab-pane" id="tab-reports">
+  <div class="filter-bar">
+    <select class="filter-select" id="reportStudentFilter">
+      <option value="">請選擇學生</option>
+    </select>
+    <select class="filter-select" id="reportPeriodFilter">
+      <option value="month">本月</option>
+      <option value="semester">本學期</option>
+      <option value="year">本學年</option>
+      <option value="all">全部</option>
+    </select>
+    <button class="btn btn-primary" onclick="generateReport()">生成成績單</button>
+    <button class="btn btn-success" onclick="exportReport()">匯出 PDF</button>
+  </div>
+
+  <div id="reportContent" class="chart-container" style="display:none;">
+    <div class="chart-title" id="reportTitle">成績單</div>
+    <div id="reportBody"></div>
+  </div>
+</div>
+
+<!-- Add Exam Modal -->
+<div class="modal" id="examModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title">新增考試</div>
+      <button class="modal-close" onclick="closeExamModal()">&times;</button>
+    </div>
+    <form id="examForm" onsubmit="saveExam(event)">
+      <div class="form-group">
+        <label class="form-label">考試名稱 *</label>
+        <input class="form-input" name="name" required placeholder="例：第一次月考">
+      </div>
+      <div class="form-group">
+        <label class="form-label">考試日期 *</label>
+        <input class="form-input" name="date" type="date" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">滿分</label>
+        <input class="form-input" name="max_score" type="number" value="100">
+      </div>
+      <div class="form-group">
+        <label class="form-label">及格分數</label>
+        <input class="form-input" name="pass_score" type="number" value="60">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn" onclick="closeExamModal()">取消</button>
+        <button type="submit" class="btn btn-primary">儲存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Add Grade Modal -->
+<div class="modal" id="gradeModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title">新增成績</div>
+      <button class="modal-close" onclick="closeGradeModal()">&times;</button>
+    </div>
+    <form id="gradeForm" onsubmit="saveGrade(event)">
+      <div class="form-group">
+        <label class="form-label">考試 *</label>
+        <select class="form-select" name="exam_id" required id="examSelect">
+          <option value="">請選擇考試</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">學生 *</label>
+        <select class="form-select" name="student_id" required id="studentSelect">
+          <option value="">請選擇學生</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">分數 *</label>
+        <input class="form-input" name="score" type="number" required min="0" max="100">
+      </div>
+      <div class="form-group">
+        <label class="form-label">備註</label>
+        <textarea class="form-textarea" name="note" placeholder="選填"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn" onclick="closeGradeModal()">取消</button>
+        <button type="submit" class="btn btn-primary">儲存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+const API = '';
+const pw = sessionStorage.getItem('adminPassword') || '';
+let students = [];
+let exams = [];
+let grades = [];
+let filteredGrades = [];
+
+async function loadData() {
+  await Promise.all([loadStudents(), loadExams(), loadGrades()]);
+  populateSelects();
+  filterGrades();
+  renderAnalysis();
+}
+
+async function loadStudents() {
+  const res = await fetch(`${API}/admin/api/students`, { headers: { 'X-Admin-Password': pw } });
+  students = await res.json();
+}
+
+async function loadExams() {
+  const res = await fetch(`${API}/admin/api/exams`, { headers: { 'X-Admin-Password': pw } });
+  exams = await res.json();
+}
+
+async function loadGrades() {
+  const res = await fetch(`${API}/admin/api/grades`, { headers: { 'X-Admin-Password': pw } });
+  grades = await res.json();
+}
+
+function populateSelects() {
+  // Exam filter
+  const examFilter = document.getElementById('examFilter');
+  examFilter.innerHTML = '<option value="">全部考試</option>' + 
+    exams.map(e => `<option value="${e.id}">${e.name} (${e.date})</option>`).join('');
+  
+  // Exam select in modal
+  const examSelect = document.getElementById('examSelect');
+  examSelect.innerHTML = '<option value="">請選擇考試</option>' + 
+    exams.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+  
+  // Student select in modal
+  const studentSelect = document.getElementById('studentSelect');
+  studentSelect.innerHTML = '<option value="">請選擇學生</option>' + 
+    students.filter(s => s.is_active).map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+  
+  // Report student filter
+  const reportStudentFilter = document.getElementById('reportStudentFilter');
+  reportStudentFilter.innerHTML = '<option value="">請選擇學生</option>' + 
+    students.filter(s => s.is_active).map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+}
+
+function filterGrades() {
+  const examId = document.getElementById('examFilter').value;
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  
+  filteredGrades = grades.filter(g => {
+    if (examId && g.exam_id != examId) return false;
+    if (search && !g.student_name.toLowerCase().includes(search)) return false;
+    return true;
+  });
+  
+  renderGrades();
+  updateStats();
+}
+
+function renderGrades() {
+  const tbody = document.getElementById('gradesTbody');
+  if (!filteredGrades.length) {
+    tbody.innerHTML = '<tr><td colspan="9" class="empty">尚無成績記錄</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML = filteredGrades.map(g => {
+    const gradeClass = g.score >= 90 ? 'excellent' : g.score >= 80 ? 'good' : g.score >= 60 ? 'average' : 'poor';
+    const gradeText = g.score >= 90 ? 'A' : g.score >= 80 ? 'B' : g.score >= 70 ? 'C' : g.score >= 60 ? 'D' : 'F';
+    
+    return `
+      <tr>
+        <td><strong>${g.student_name}</strong></td>
+        <td>${g.exam_name}</td>
+        <td><span class="grade ${gradeClass}">${g.score}</span></td>
+        <td><strong>${gradeText}</strong></td>
+        <td>${g.rank || '-'}</td>
+        <td><span class="trend ${g.trend || 'stable'}">${getTrendText(g.trend)}</span></td>
+        <td>${g.exam_date}</td>
+        <td>${g.note || '-'}</td>
+        <td>
+          <button class="btn btn-sm btn-danger" onclick="deleteGrade(${g.id})">刪除</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function updateStats() {
+  if (!filteredGrades.length) {
+    document.getElementById('avgScore').textContent = '0';
+    document.getElementById('maxScore').textContent = '0';
+    document.getElementById('minScore').textContent = '0';
+    document.getElementById('passRate').textContent = '0%';
+    return;
+  }
+  
+  const scores = filteredGrades.map(g => g.score);
+  const avg = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+  const max = Math.max(...scores);
+  const min = Math.min(...scores);
+  const passed = scores.filter(s => s >= 60).length;
+  const passRate = Math.round(passed / scores.length * 100);
+  
+  document.getElementById('avgScore').textContent = avg;
+  document.getElementById('maxScore').textContent = max;
+  document.getElementById('minScore').textContent = min;
+  document.getElementById('passRate').textContent = passRate + '%';
+}
+
+function renderAnalysis() {
+  const analysis = {};
+  
+  students.filter(s => s.is_active).forEach(s => {
+    const studentGrades = grades.filter(g => g.student_id === s.id);
+    if (studentGrades.length === 0) return;
+    
+    const scores = studentGrades.map(g => g.score);
+    const avg = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+    const max = Math.max(...scores);
+    const min = Math.min(...scores);
+    const improvement = scores.length >= 2 ? scores[scores.length - 1] - scores[0] : 0;
+    
+    analysis[s.id] = {
+      name: s.name,
+      count: studentGrades.length,
+      avg: avg,
+      max: max,
+      min: min,
+      improvement: improvement
+    };
+  });
+  
+  const tbody = document.getElementById('analysisTbody');
+  const rows = Object.values(analysis);
+  
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty">尚無分析資料</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML = rows.map(a => `
+    <tr>
+      <td><strong>${a.name}</strong></td>
+      <td>${a.count}</td>
+      <td><strong>${a.avg}</strong></td>
+      <td class="grade excellent">${a.max}</td>
+      <td class="grade poor">${a.min}</td>
+      <td><span class="trend ${a.improvement > 0 ? 'up' : a.improvement < 0 ? 'down' : 'stable'}">${a.improvement > 0 ? '+' : ''}${a.improvement}</span></td>
+      <td>${a.improvement > 0 ? '進步' : a.improvement < 0 ? '退步' : '持平'}</td>
+    </tr>
+  `).join('');
+}
+
+function getTrendText(trend) {
+  if (trend === 'up') return '進步';
+  if (trend === 'down') return '退步';
+  return '持平';
+}
+
+// Exam Modal
+function showAddExamModal() {
+  document.getElementById('examForm').reset();
+  document.getElementById('examModal').classList.add('show');
+}
+
+async function saveExam(e) {
+  e.preventDefault();
+  const form = e.target;
+  const data = {
+    name: form.name.value,
+    date: form.date.value,
+    max_score: parseInt(form.max_score.value),
+    pass_score: parseInt(form.pass_score.value)
+  };
+  
+  const res = await fetch(`${API}/admin/api/exams`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Password': pw },
+    body: JSON.stringify(data)
+  });
+  
+  if (res.ok) {
+    await loadExams();
+    populateSelects();
+    closeExamModal();
+    alert('考試已新增');
+  }
+}
+
+function closeExamModal() {
+  document.getElementById('examModal').classList.remove('show');
+}
+
+// Grade Modal
+function showAddGradeModal() {
+  document.getElementById('gradeForm').reset();
+  document.getElementById('gradeModal').classList.add('show');
+}
+
+async function saveGrade(e) {
+  e.preventDefault();
+  const form = e.target;
+  const data = {
+    exam_id: parseInt(form.exam_id.value),
+    student_id: parseInt(form.student_id.value),
+    score: parseInt(form.score.value),
+    note: form.note.value
+  };
+  
+  const res = await fetch(`${API}/admin/api/grades`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Password': pw },
+    body: JSON.stringify(data)
+  });
+  
+  if (res.ok) {
+    await loadGrades();
+    filterGrades();
+    renderAnalysis();
+    closeGradeModal();
+    alert('成績已新增');
+  }
+}
+
+function closeGradeModal() {
+  document.getElementById('gradeModal').classList.remove('show');
+}
+
+async function deleteGrade(id) {
+  if (!confirm('確定要刪除此成績？')) return;
+  
+  const res = await fetch(`${API}/admin/api/grades/${id}`, {
+    method: 'DELETE',
+    headers: { 'X-Admin-Password': pw }
+  });
+  
+  if (res.ok) {
+    await loadGrades();
+    filterGrades();
+    renderAnalysis();
+  }
+}
+
+function generateReport() {
+  const studentId = document.getElementById('reportStudentFilter').value;
+  if (!studentId) {
+    alert('請選擇學生');
+    return;
+  }
+  
+  const student = students.find(s => s.id == studentId);
+  const studentGrades = grades.filter(g => g.student_id == studentId);
+  
+  if (!studentGrades.length) {
+    alert('該學生尚無成績記錄');
+    return;
+  }
+  
+  const reportContent = document.getElementById('reportContent');
+  const reportTitle = document.getElementById('reportTitle');
+  const reportBody = document.getElementById('reportBody');
+  
+  reportTitle.textContent = `${student.name} - 成績單`;
+  
+  const scores = studentGrades.map(g => g.score);
+  const avg = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+  
+  reportBody.innerHTML = `
+    <table style="width:100%; border-collapse: collapse;">
+      <tr style="border-bottom: 2px solid #e5e7eb;">
+        <th style="padding:12px; text-align:left;">考試名稱</th>
+        <th style="padding:12px; text-align:left;">日期</th>
+        <th style="padding:12px; text-align:left;">分數</th>
+        <th style="padding:12px; text-align:left;">等第</th>
+      </tr>
+      ${studentGrades.map(g => {
+        const gradeText = g.score >= 90 ? 'A' : g.score >= 80 ? 'B' : g.score >= 70 ? 'C' : g.score >= 60 ? 'D' : 'F';
+        return `
+          <tr style="border-bottom: 1px solid #f3f4f6;">
+            <td style="padding:12px;">${g.exam_name}</td>
+            <td style="padding:12px;">${g.exam_date}</td>
+            <td style="padding:12px; font-weight:700;">${g.score}</td>
+            <td style="padding:12px;">${gradeText}</td>
+          </tr>
+        `;
+      }).join('')}
+      <tr style="background: #f9fafb; font-weight:700;">
+        <td style="padding:12px;" colspan="2">平均分數</td>
+        <td style="padding:12px;">${avg}</td>
+        <td style="padding:12px;">-</td>
+      </tr>
+    </table>
+  `;
+  
+  reportContent.style.display = 'block';
+}
+
+function exportReport() {
+  alert('PDF 匯出功能開發中');
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById(`tab-${tab}`).classList.add('active');
+}
+
+// Init
+loadData();
+</script>
+
+</body>
+</html>

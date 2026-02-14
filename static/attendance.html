@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>出席打卡系統</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --purple: #7c3aed; --purple-light: #ede9fe; --text: #1a1a2e;
+  --sub: #6b7280; --border: #e5e7eb; --bg: #f3f4f6; --white: #fff;
+  --green: #10b981; --red: #ef4444; --blue: #3b82f6; --orange: #f59e0b;
+  --radius: 10px;
+}
+body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
+
+.header { margin-bottom: 24px; }
+.header h2 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+.header p { font-size: 14px; color: var(--sub); }
+
+/* Tabs */
+.tabs { display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 2px solid var(--border); }
+.tab { padding: 10px 20px; font-size: 14px; font-weight: 500; color: var(--sub); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .2s; }
+.tab.active { color: var(--purple); border-bottom-color: var(--purple); }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+/* Stats */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.stat-card { background: white; border-radius: var(--radius); padding: 20px; border: 1px solid var(--border); }
+.stat-label { font-size: 13px; color: var(--sub); margin-bottom: 6px; }
+.stat-value { font-size: 28px; font-weight: 700; }
+.stat-value.green { color: var(--green); }
+.stat-value.red { color: var(--red); }
+.stat-value.orange { color: var(--orange); }
+
+/* Quick Check-in */
+.quick-checkin { background: white; border-radius: var(--radius); padding: 24px; border: 1px solid var(--border); margin-bottom: 24px; }
+.checkin-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
+.checkin-form { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: end; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-label { font-size: 13px; font-weight: 500; color: var(--sub); }
+.form-input { padding: 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; font-family: inherit; }
+.form-input:focus { outline: none; border-color: var(--purple); }
+.form-select { padding: 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; }
+
+/* Buttons */
+.btn { padding: 12px 24px; border-radius: var(--radius); font-size: 14px; font-weight: 500; cursor: pointer; border: none; font-family: inherit; transition: all .15s; }
+.btn-primary { background: var(--purple); color: white; }
+.btn-primary:hover { background: #6d28d9; }
+.btn-success { background: var(--green); color: white; }
+.btn-success:hover { background: #059669; }
+.btn-danger { background: var(--red); color: white; }
+.btn-sm { padding: 6px 16px; font-size: 13px; }
+
+/* Table */
+.table-wrap { background: white; border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; margin-bottom: 20px; }
+.table-wrap table { width: 100%; border-collapse: collapse; }
+.table-wrap th { background: #f9fafb; padding: 12px 16px; text-align: left; font-size: 12px; color: var(--sub); font-weight: 600; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.table-wrap td { padding: 14px 16px; font-size: 13px; border-bottom: 1px solid #f3f4f6; }
+.table-wrap tr:last-child td { border-bottom: none; }
+.table-wrap tr:hover td { background: #fafafa; }
+
+/* Badge */
+.badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+.badge-present { background: #d1fae5; color: #065f46; }
+.badge-late { background: #fed7aa; color: #92400e; }
+.badge-absent { background: #fee2e2; color: #991b1b; }
+.badge-leave { background: #dbeafe; color: #1e40af; }
+
+/* Filter */
+.filter-bar { display: flex; gap: 10px; margin-bottom: 18px; align-items: center; flex-wrap: wrap; }
+.filter-select { padding: 8px 14px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; }
+.search-input { flex: 1; min-width: 200px; padding: 8px 14px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; }
+.search-input:focus { outline: none; border-color: var(--purple); }
+
+/* QR Code */
+.qr-section { background: white; border-radius: var(--radius); padding: 24px; border: 1px solid var(--border); text-align: center; }
+.qr-code { margin: 20px auto; padding: 20px; background: white; border: 2px solid var(--border); border-radius: var(--radius); display: inline-block; }
+.qr-code canvas { display: block; }
+.qr-info { font-size: 13px; color: var(--sub); margin-top: 16px; }
+
+.empty { text-align: center; padding: 40px; color: var(--sub); }
+
+@media (max-width: 768px) {
+  .checkin-form { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h2>出席打卡系統</h2>
+  <p>學生簽到簽退管理</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('checkin')">快速打卡</div>
+  <div class="tab" onclick="switchTab('records')">打卡記錄</div>
+  <div class="tab" onclick="switchTab('qr')">QR Code</div>
+  <div class="tab" onclick="switchTab('stats')">統計報表</div>
+</div>
+
+<!-- Quick Check-in Tab -->
+<div class="tab-pane active" id="tab-checkin">
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-label">今日出席</div>
+      <div class="stat-value green" id="todayPresent">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">今日遲到</div>
+      <div class="stat-value orange" id="todayLate">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">今日缺席</div>
+      <div class="stat-value red" id="todayAbsent">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">出席率</div>
+      <div class="stat-value" id="todayRate">0%</div>
+    </div>
+  </div>
+
+  <div class="quick-checkin">
+    <div class="checkin-title">快速打卡</div>
+    <form class="checkin-form" onsubmit="quickCheckin(event)">
+      <div class="form-group">
+        <label class="form-label">學生</label>
+        <select class="form-select" id="studentSelect" required>
+          <option value="">請選擇學生</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">狀態</label>
+        <select class="form-select" id="statusSelect" required>
+          <option value="present">出席</option>
+          <option value="late">遲到</option>
+          <option value="absent">缺席</option>
+          <option value="leave">請假</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-success">打卡</button>
+    </form>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>時間</th>
+          <th>學生</th>
+          <th>課程</th>
+          <th>狀態</th>
+          <th>備註</th>
+        </tr>
+      </thead>
+      <tbody id="todayTbody">
+        <tr><td colspan="5" class="empty">今日尚無打卡記錄</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Records Tab -->
+<div class="tab-pane" id="tab-records">
+  <div class="filter-bar">
+    <input type="date" class="filter-select" id="dateFilter" onchange="filterRecords()">
+    <select class="filter-select" id="statusFilter" onchange="filterRecords()">
+      <option value="">全部狀態</option>
+      <option value="present">出席</option>
+      <option value="late">遲到</option>
+      <option value="absent">缺席</option>
+      <option value="leave">請假</option>
+    </select>
+    <input class="search-input" id="searchInput" placeholder="搜尋學生姓名..." oninput="filterRecords()">
+    <button class="btn btn-primary" onclick="exportRecords()">匯出報表</button>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>日期</th>
+          <th>時間</th>
+          <th>學生</th>
+          <th>課程</th>
+          <th>狀態</th>
+          <th>遲到分鐘</th>
+          <th>備註</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="recordsTbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- QR Code Tab -->
+<div class="tab-pane" id="tab-qr">
+  <div class="qr-section">
+    <div class="checkin-title">學生掃碼打卡</div>
+    <div class="qr-code" id="qrCode"></div>
+    <div class="qr-info">
+      學生使用手機掃描 QR Code 即可完成打卡<br>
+      QR Code 每 5 分鐘自動更新
+    </div>
+    <button class="btn btn-primary" onclick="refreshQRCode()" style="margin-top: 20px;">重新生成</button>
+  </div>
+</div>
+
+<!-- Stats Tab -->
+<div class="tab-pane" id="tab-stats">
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-label">本週出席率</div>
+      <div class="stat-value green" id="weekRate">0%</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">本月出席率</div>
+      <div class="stat-value green" id="monthRate">0%</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">累計遲到次數</div>
+      <div class="stat-value orange" id="totalLate">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">累計缺席次數</div>
+      <div class="stat-value red" id="totalAbsent">0</div>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>學生</th>
+          <th>出席次數</th>
+          <th>遲到次數</th>
+          <th>缺席次數</th>
+          <th>請假次數</th>
+          <th>出席率</th>
+        </tr>
+      </thead>
+      <tbody id="statsTbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+<script>
+const API = '';
+const pw = sessionStorage.getItem('adminPassword') || '';
+let students = [];
+let records = [];
+let allRecords = [];
+
+// Load Data
+async function loadData() {
+  await loadStudents();
+  await loadRecords();
+  renderToday();
+  renderStats();
+  generateQRCode();
+}
+
+async function loadStudents() {
+  const res = await fetch(`${API}/admin/api/students`, { headers: { 'X-Admin-Password': pw } });
+  students = await res.json();
+  
+  const select = document.getElementById('studentSelect');
+  select.innerHTML = '<option value="">請選擇學生</option>' + 
+    students.filter(s => s.is_active).map(s => 
+      `<option value="${s.id}">${s.name} (${s.student_id})</option>`
+    ).join('');
+}
+
+async function loadRecords() {
+  const res = await fetch(`${API}/admin/api/attendance`, { headers: { 'X-Admin-Password': pw } });
+  allRecords = await res.json();
+  records = allRecords;
+  filterRecords();
+}
+
+// Quick Check-in
+async function quickCheckin(e) {
+  e.preventDefault();
+  
+  const studentId = document.getElementById('studentSelect').value;
+  const status = document.getElementById('statusSelect').value;
+  
+  if (!studentId) {
+    alert('請選擇學生');
+    return;
+  }
+  
+  const data = {
+    student_id: parseInt(studentId),
+    status: status,
+    check_time: new Date().toISOString(),
+    note: ''
+  };
+  
+  const res = await fetch(`${API}/admin/api/attendance`, {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      'X-Admin-Password': pw 
+    },
+    body: JSON.stringify(data)
+  });
+  
+  if (res.ok) {
+    await loadRecords();
+    renderToday();
+    renderStats();
+    document.getElementById('studentSelect').value = '';
+    alert('打卡成功！');
+  } else {
+    alert('打卡失敗');
+  }
+}
+
+// Render Today
+function renderToday() {
+  const today = new Date().toISOString().split('T')[0];
+  const todayRecords = allRecords.filter(r => r.date === today);
+  
+  const tbody = document.getElementById('todayTbody');
+  if (!todayRecords.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty">今日尚無打卡記錄</td></tr>';
+  } else {
+    tbody.innerHTML = todayRecords.map(r => `
+      <tr>
+        <td>${r.check_time}</td>
+        <td><strong>${r.student_name}</strong></td>
+        <td>${r.course || '-'}</td>
+        <td><span class="badge badge-${r.status}">${getStatusText(r.status)}</span></td>
+        <td>${r.note || '-'}</td>
+      </tr>
+    `).join('');
+  }
+  
+  // Update stats
+  const present = todayRecords.filter(r => r.status === 'present').length;
+  const late = todayRecords.filter(r => r.status === 'late').length;
+  const absent = todayRecords.filter(r => r.status === 'absent').length;
+  const total = todayRecords.length;
+  
+  document.getElementById('todayPresent').textContent = present;
+  document.getElementById('todayLate').textContent = late;
+  document.getElementById('todayAbsent').textContent = absent;
+  document.getElementById('todayRate').textContent = total > 0 ? Math.round((present + late) / total * 100) + '%' : '0%';
+}
+
+// Filter Records
+function filterRecords() {
+  const date = document.getElementById('dateFilter').value;
+  const status = document.getElementById('statusFilter').value;
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  
+  records = allRecords.filter(r => {
+    if (date && r.date !== date) return false;
+    if (status && r.status !== status) return false;
+    if (search && !r.student_name.toLowerCase().includes(search)) return false;
+    return true;
+  });
+  
+  renderRecords();
+}
+
+function renderRecords() {
+  const tbody = document.getElementById('recordsTbody');
+  if (!records.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty">沒有符合條件的記錄</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML = records.map(r => `
+    <tr>
+      <td>${r.date}</td>
+      <td>${r.check_time}</td>
+      <td><strong>${r.student_name}</strong></td>
+      <td>${r.course || '-'}</td>
+      <td><span class="badge badge-${r.status}">${getStatusText(r.status)}</span></td>
+      <td>${r.late_minutes || '-'}</td>
+      <td>${r.note || '-'}</td>
+      <td>
+        <button class="btn btn-sm btn-danger" onclick="deleteRecord(${r.id})">刪除</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// Render Stats
+function renderStats() {
+  const statsByStudent = {};
+  
+  students.filter(s => s.is_active).forEach(s => {
+    statsByStudent[s.id] = {
+      name: s.name,
+      present: 0,
+      late: 0,
+      absent: 0,
+      leave: 0,
+      total: 0
+    };
+  });
+  
+  allRecords.forEach(r => {
+    if (statsByStudent[r.student_id]) {
+      statsByStudent[r.student_id][r.status]++;
+      statsByStudent[r.student_id].total++;
+    }
+  });
+  
+  const tbody = document.getElementById('statsTbody');
+  const rows = Object.values(statsByStudent).filter(s => s.total > 0);
+  
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty">尚無統計資料</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML = rows.map(s => {
+    const rate = s.total > 0 ? Math.round((s.present + s.late) / s.total * 100) : 0;
+    return `
+      <tr>
+        <td><strong>${s.name}</strong></td>
+        <td>${s.present}</td>
+        <td>${s.late}</td>
+        <td>${s.absent}</td>
+        <td>${s.leave}</td>
+        <td><strong>${rate}%</strong></td>
+      </tr>
+    `;
+  }).join('');
+  
+  // Overall stats
+  const totalLate = allRecords.filter(r => r.status === 'late').length;
+  const totalAbsent = allRecords.filter(r => r.status === 'absent').length;
+  const totalRecords = allRecords.length;
+  const totalPresent = allRecords.filter(r => r.status === 'present' || r.status === 'late').length;
+  
+  document.getElementById('totalLate').textContent = totalLate;
+  document.getElementById('totalAbsent').textContent = totalAbsent;
+  
+  const overallRate = totalRecords > 0 ? Math.round(totalPresent / totalRecords * 100) : 0;
+  document.getElementById('weekRate').textContent = overallRate + '%';
+  document.getElementById('monthRate').textContent = overallRate + '%';
+}
+
+async function deleteRecord(id) {
+  if (!confirm('確定要刪除此記錄？')) return;
+  
+  const res = await fetch(`${API}/admin/api/attendance/${id}`, {
+    method: 'DELETE',
+    headers: { 'X-Admin-Password': pw }
+  });
+  
+  if (res.ok) {
+    await loadRecords();
+    renderToday();
+    renderStats();
+  }
+}
+
+function getStatusText(status) {
+  const map = {
+    'present': '出席',
+    'late': '遲到',
+    'absent': '缺席',
+    'leave': '請假'
+  };
+  return map[status] || status;
+}
+
+function generateQRCode() {
+  const qrData = {
+    type: 'attendance',
+    timestamp: Date.now(),
+    url: window.location.origin + '/checkin'
+  };
+  
+  QRCode.toCanvas(
+    document.createElement('canvas'),
+    JSON.stringify(qrData),
+    { width: 256, margin: 2 },
+    (error, canvas) => {
+      if (!error) {
+        const container = document.getElementById('qrCode');
+        container.innerHTML = '';
+        container.appendChild(canvas);
+      }
+    }
+  );
+}
+
+function refreshQRCode() {
+  generateQRCode();
+  alert('QR Code 已更新');
+}
+
+function exportRecords() {
+  alert('匯出功能開發中');
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById(`tab-${tab}`).classList.add('active');
+}
+
+// Set today's date as default
+document.getElementById('dateFilter').valueAsDate = new Date();
+
+// Init
+loadData();
+
+// Auto refresh every 30 seconds
+setInterval(() => {
+  loadRecords();
+  renderToday();
+}, 30000);
+</script>
+
+</body>
+</html>

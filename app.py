@@ -173,6 +173,85 @@ class Expense(db.Model):
         }
 
 
+class Attendance(db.Model):
+    __tablename__ = 'attendance'
+    id              = db.Column(db.Integer, primary_key=True)
+    student_id      = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)
+    date            = db.Column(db.String(10), nullable=False)  # YYYY-MM-DD
+    check_time      = db.Column(db.String(5), nullable=False)   # HH:MM
+    status          = db.Column(db.String(20), nullable=False)  # present, late, absent, leave
+    late_minutes    = db.Column(db.Integer, default=0)
+    course          = db.Column(db.String(50))
+    note            = db.Column(db.Text)
+    created_at      = db.Column(db.DateTime, default=datetime.now)
+
+    student = db.relationship('Student', backref='attendance_records')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'student_id': self.student_id,
+            'student_name': self.student.name if self.student else '',
+            'date': self.date,
+            'check_time': self.check_time,
+            'status': self.status,
+            'late_minutes': self.late_minutes,
+            'course': self.course,
+            'note': self.note,
+            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M') if self.created_at else '',
+        }
+
+
+class Exam(db.Model):
+    __tablename__ = 'exams'
+    id              = db.Column(db.Integer, primary_key=True)
+    name            = db.Column(db.String(100), nullable=False)
+    date            = db.Column(db.String(10), nullable=False)  # YYYY-MM-DD
+    max_score       = db.Column(db.Integer, default=100)
+    pass_score      = db.Column(db.Integer, default=60)
+    created_at      = db.Column(db.DateTime, default=datetime.now)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'date': self.date,
+            'max_score': self.max_score,
+            'pass_score': self.pass_score,
+            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M') if self.created_at else '',
+        }
+
+
+class Grade(db.Model):
+    __tablename__ = 'grades'
+    id              = db.Column(db.Integer, primary_key=True)
+    exam_id         = db.Column(db.Integer, db.ForeignKey('exams.id'), nullable=False)
+    student_id      = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)
+    score           = db.Column(db.Integer, nullable=False)
+    rank            = db.Column(db.Integer)
+    trend           = db.Column(db.String(10))  # up, down, stable
+    note            = db.Column(db.Text)
+    created_at      = db.Column(db.DateTime, default=datetime.now)
+
+    exam = db.relationship('Exam', backref='grades')
+    student = db.relationship('Student', backref='grades')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'exam_id': self.exam_id,
+            'exam_name': self.exam.name if self.exam else '',
+            'exam_date': self.exam.date if self.exam else '',
+            'student_id': self.student_id,
+            'student_name': self.student.name if self.student else '',
+            'score': self.score,
+            'rank': self.rank,
+            'trend': self.trend,
+            'note': self.note,
+            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M') if self.created_at else '',
+        }
+
+
 class Booking(db.Model):
     __tablename__ = 'bookings'
     id           = db.Column(db.Integer, primary_key=True)
@@ -293,6 +372,16 @@ def website_content():
 def online_booking():
     """線上報名頁面（iframe用）"""
     return send_from_directory('static', 'online-booking.html')
+
+@app.route('/attendance')
+def attendance():
+    """出席打卡頁面（iframe用）"""
+    return send_from_directory('static', 'attendance.html')
+
+@app.route('/grades')
+def grades():
+    """成績管理頁面（iframe用）"""
+    return send_from_directory('static', 'grades.html')
 
 
 # ─────────────────────────────────────────────
@@ -683,6 +772,204 @@ def admin_get_finance_summary():
         'month_income': month_income,
         'current_month': current_month,
     })
+
+
+# ─────────────────────────────────────────────
+# 出席打卡 API
+# ─────────────────────────────────────────────
+
+@app.route('/admin/api/attendance', methods=['GET'])
+def admin_get_attendance():
+    check_admin()
+    date = request.args.get('date')
+    student_id = request.args.get('student_id', type=int)
+    
+    query = Attendance.query
+    if date:
+        query = query.filter_by(date=date)
+    if student_id:
+        query = query.filter_by(student_id=student_id)
+    
+    records = query.order_by(Attendance.created_at.desc()).all()
+    return jsonify([r.to_dict() for r in records])
+
+
+@app.route('/admin/api/attendance', methods=['POST'])
+def admin_add_attendance():
+    check_admin()
+    data = request.get_json()
+    
+    check_time_str = data.get('check_time', '')
+    if check_time_str:
+        check_datetime = datetime.fromisoformat(check_time_str.replace('Z', '+00:00'))
+        date = check_datetime.strftime('%Y-%m-%d')
+        time = check_datetime.strftime('%H:%M')
+    else:
+        now = datetime.now()
+        date = now.strftime('%Y-%m-%d')
+        time = now.strftime('%H:%M')
+    
+    attendance = Attendance(
+        student_id=data['student_id'],
+        date=date,
+        check_time=time,
+        status=data.get('status', 'present'),
+        late_minutes=data.get('late_minutes', 0),
+        course=data.get('course', ''),
+        note=data.get('note', ''),
+    )
+    db.session.add(attendance)
+    db.session.commit()
+    return jsonify(attendance.to_dict()), 201
+
+
+@app.route('/admin/api/attendance/<int:aid>', methods=['DELETE'])
+def admin_delete_attendance(aid):
+    check_admin()
+    attendance = Attendance.query.get_or_404(aid)
+    db.session.delete(attendance)
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+@app.route('/admin/api/attendance/stats', methods=['GET'])
+def admin_get_attendance_stats():
+    check_admin()
+    
+    # 統計每個學生的出席情況
+    students = Student.query.filter_by(is_active=True).all()
+    stats = []
+    
+    for student in students:
+        records = Attendance.query.filter_by(student_id=student.id).all()
+        total = len(records)
+        present = len([r for r in records if r.status == 'present'])
+        late = len([r for r in records if r.status == 'late'])
+        absent = len([r for r in records if r.status == 'absent'])
+        leave = len([r for r in records if r.status == 'leave'])
+        
+        rate = round((present + late) / total * 100, 1) if total > 0 else 0
+        
+        stats.append({
+            'student_id': student.id,
+            'student_name': student.name,
+            'total': total,
+            'present': present,
+            'late': late,
+            'absent': absent,
+            'leave': leave,
+            'attendance_rate': rate
+        })
+    
+    return jsonify(stats)
+
+
+# ─────────────────────────────────────────────
+# 成績管理 API
+# ─────────────────────────────────────────────
+
+@app.route('/admin/api/exams', methods=['GET'])
+def admin_get_exams():
+    check_admin()
+    exams = Exam.query.order_by(Exam.date.desc()).all()
+    return jsonify([e.to_dict() for e in exams])
+
+
+@app.route('/admin/api/exams', methods=['POST'])
+def admin_add_exam():
+    check_admin()
+    data = request.get_json()
+    
+    exam = Exam(
+        name=data['name'],
+        date=data['date'],
+        max_score=data.get('max_score', 100),
+        pass_score=data.get('pass_score', 60),
+    )
+    db.session.add(exam)
+    db.session.commit()
+    return jsonify(exam.to_dict()), 201
+
+
+@app.route('/admin/api/exams/<int:eid>', methods=['DELETE'])
+def admin_delete_exam(eid):
+    check_admin()
+    exam = Exam.query.get_or_404(eid)
+    db.session.delete(exam)
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+@app.route('/admin/api/grades', methods=['GET'])
+def admin_get_grades():
+    check_admin()
+    exam_id = request.args.get('exam_id', type=int)
+    student_id = request.args.get('student_id', type=int)
+    
+    query = Grade.query
+    if exam_id:
+        query = query.filter_by(exam_id=exam_id)
+    if student_id:
+        query = query.filter_by(student_id=student_id)
+    
+    grades = query.order_by(Grade.created_at.desc()).all()
+    return jsonify([g.to_dict() for g in grades])
+
+
+@app.route('/admin/api/grades', methods=['POST'])
+def admin_add_grade():
+    check_admin()
+    data = request.get_json()
+    
+    grade = Grade(
+        exam_id=data['exam_id'],
+        student_id=data['student_id'],
+        score=data['score'],
+        note=data.get('note', ''),
+    )
+    db.session.add(grade)
+    db.session.commit()
+    
+    # 計算排名
+    _calculate_ranks(data['exam_id'])
+    
+    return jsonify(grade.to_dict()), 201
+
+
+@app.route('/admin/api/grades/<int:gid>', methods=['DELETE'])
+def admin_delete_grade(gid):
+    check_admin()
+    grade = Grade.query.get_or_404(gid)
+    exam_id = grade.exam_id
+    db.session.delete(grade)
+    db.session.commit()
+    
+    # 重新計算排名
+    _calculate_ranks(exam_id)
+    
+    return jsonify({'success': True})
+
+
+def _calculate_ranks(exam_id):
+    """計算某次考試的排名"""
+    grades = Grade.query.filter_by(exam_id=exam_id).order_by(Grade.score.desc()).all()
+    
+    for idx, grade in enumerate(grades, 1):
+        grade.rank = idx
+        
+        # 計算進退步趨勢
+        student_grades = Grade.query.filter_by(student_id=grade.student_id).order_by(Grade.created_at).all()
+        if len(student_grades) >= 2:
+            prev_score = student_grades[-2].score
+            curr_score = grade.score
+            if curr_score > prev_score + 5:
+                grade.trend = 'up'
+            elif curr_score < prev_score - 5:
+                grade.trend = 'down'
+            else:
+                grade.trend = 'stable'
+    
+    db.session.commit()
 
 
 # ─────────────────────────────────────────────
